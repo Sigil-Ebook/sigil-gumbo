@@ -52,8 +52,6 @@ static bool node_html_tag_is(const GumboNode*, GumboTag);
 static GumboInsertionMode get_current_template_insertion_mode(const GumboParser*);
 static bool handle_in_template(GumboParser*, GumboToken*);
 static void free_node(GumboNode* node);
-static void add_node_to_doc(GumboParser *parser, GumboNode *node);
-static void remove_node_from_doc(GumboParser* parser, GumboNode* node);
 
 const GumboOptions kGumboDefaultOptions = {
   8,
@@ -455,7 +453,6 @@ static GumboNode* create_node(GumboNodeType type) {
 
   node->parent = NULL;
   node->index_within_parent = -1;
-  node->index_within_doc = -1;
   node->type = type;
   node->parse_flags = GUMBO_INSERTION_NORMAL;
 
@@ -481,7 +478,6 @@ static void output_init(GumboParser* parser) {
   GumboOutput* output = gumbo_malloc(sizeof(GumboOutput));
   output->root = NULL;
   output->document = new_document_node();
-  gumbo_vector_init(16, &output->doc_nodes);
   parser->_output = output;
   gumbo_init_errors(parser);
 }
@@ -891,7 +887,6 @@ static void maybe_flush_text_node_buffer(GumboParser* parser) {
          buffer_state->_type == GUMBO_NODE_TEXT ||
          buffer_state->_type == GUMBO_NODE_CDATA);
   GumboNode* text_node = create_node(buffer_state->_type);
-  add_node_to_doc(parser, text_node);
   GumboText* text_node_data = &text_node->v.text;
   text_node_data->text = gumbo_string_buffer_to_string(&buffer_state->_buffer);
   text_node_data->original_text.data = buffer_state->_start_original_text;
@@ -907,7 +902,7 @@ static void maybe_flush_text_node_buffer(GumboParser* parser) {
   if (location.target->type == GUMBO_NODE_DOCUMENT) {
     // The DOM does not allow Document nodes to have Text children, so per the
     // spec, they are dropped on the floor.
-    remove_node_from_doc(parser, text_node);
+    free_node(text_node);
   } else {
     insert_node(text_node, location);
   }
@@ -959,7 +954,6 @@ static void append_comment_node(
     GumboParser* parser, GumboNode* node, const GumboToken* token) {
   maybe_flush_text_node_buffer(parser);
   GumboNode* comment = create_node(GUMBO_NODE_COMMENT);
-  add_node_to_doc(parser, comment);
   comment->type = GUMBO_NODE_COMMENT;
   comment->parse_flags = GUMBO_INSERTION_NORMAL;
   comment->v.text.text = token->v.text;
@@ -1018,7 +1012,6 @@ static GumboNode* create_element_from_token(GumboParser *parser,
         ? GUMBO_NODE_TEMPLATE : GUMBO_NODE_ELEMENT;
 
   GumboNode* node = create_node(type);
-  add_node_to_doc(parser, node);
   GumboElement* element = &node->v.element;
   gumbo_vector_init(1, &element->children);
   element->attributes = start_tag->attributes;
@@ -1234,7 +1227,6 @@ GumboNode* clone_node(const GumboNode* node, GumboParseFlags reason) {
   *new_node = *node;
   new_node->parent = NULL;
   new_node->index_within_parent = -1;
-  new_node->index_within_doc = -1;
   // Clear the GUMBO_INSERTION_IMPLICIT_END_TAG flag, as the cloned node may
   // have a separate end tag.
   new_node->parse_flags &= ~GUMBO_INSERTION_IMPLICIT_END_TAG;
@@ -2350,18 +2342,6 @@ static void free_node(GumboNode* node) {
   gumbo_free(node);
 }
 
-static void remove_node_from_doc(GumboParser* parser, GumboNode* node) {
-  if (node->index_within_doc != -1) {
-    parser->_output->doc_nodes.data[node->index_within_doc] = NULL;
-  }
-  gumbo_free(node);
-}
-
-static void add_node_to_doc(GumboParser *parser, GumboNode *node) {
-  node->index_within_doc = parser->_output->doc_nodes.length;
-  gumbo_vector_add(node, &parser->_output->doc_nodes);
-}
-
 // http://www.whatwg.org/specs/web-apps/current-work/complete/tokenization.html#parsing-main-inbody
 static bool handle_in_body(GumboParser* parser, GumboToken* token) {
   GumboParserState* state = parser->_parser_state;
@@ -2445,7 +2425,7 @@ static bool handle_in_body(GumboParser* parser, GumboToken* token) {
         break;
       }
     }
-    remove_node_from_doc(parser, body_node);
+    free_node(body_node);
 
     // Insert the <frameset>, and switch the insertion mode.
     insert_element_from_token(parser, token);
@@ -4131,31 +4111,10 @@ void gumbo_destroy_output(GumboOutput* output) {
   for (int i = 0; i < output->errors.length; ++i) {
     gumbo_error_destroy(output->errors.data[i]);
   }
-  gumbo_vector_destroy(&output->doc_nodes);
   gumbo_vector_destroy(&output->errors);
   gumbo_free(output);
 }
 
-GumboNode *gumbo_next_in_doc(GumboOutput *output, GumboNode *node) {
-  unsigned int pos = node->index_within_doc;
-  if (pos == -1)
-    return NULL;
-  while (pos < output->doc_nodes.length) {
-    GumboNode *next = output->doc_nodes.data[pos++];
-    if (next)
-      return next;
-  }
-  return NULL;
-}
-
-GumboNode *gumbo_prev_in_doc(GumboOutput *output, GumboNode *node) {
-  unsigned int pos = node->index_within_doc;
-  if (pos == -1 || pos == 0)
-    return NULL;
-  while (pos > 0) {
-    GumboNode *prev = output->doc_nodes.data[pos--];
-    if (prev)
-      return prev;
-  }
-  return output->doc_nodes.data[0];
+void gumbo_destroy_node(GumboNode *node) {
+  free_node(node);
 }
