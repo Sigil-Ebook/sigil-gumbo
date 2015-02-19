@@ -523,21 +523,9 @@ struct GumboInternalNode {
   /** Pointer back to parent node.  Not owned. */
   GumboNode* parent;
 
-  /**
-   * Pointer to next node in document order.  This is the next node by start tag
-   * position in the document, or by position of the tag that forces the parser
-   * to insert it for parser-inserted nodes.  It's necessary to maintain API
-   * compatibility with some other libraries, eg. BeautifulSoup.  Not owned.
-   */
-  GumboNode* next;
-
-  /**
-   * Pointer to previous node in document order.
-   */
-  GumboNode* prev;
-
   /** The index within the parent's children vector of this node. */
-  size_t index_within_parent;
+  unsigned int index_within_parent;
+  unsigned int index_within_doc;
 
   /**
    * A bitvector of flags containing information about why this element was
@@ -616,6 +604,14 @@ typedef struct GumboInternalOutput {
   GumboNode* root;
 
   /**
+   * Vector of nodes that appear in the original document, in the same
+   * order as they appeared. Useful to traverse nodes in document order.
+   *
+   * Does not include parser-inserted nodes.
+   */
+  GumboVector /* GumboNode */ doc_nodes;
+
+  /**
    * A list of errors that occurred during the parse.
    * NOTE: In version 1.0 of this library, the API for errors hasn't been fully
    * fleshed out and may change in the future.  For this reason, the GumboError
@@ -651,6 +647,14 @@ GumboOutput* gumbo_parse_fragment(
 
 /** Release the memory used for the parse tree & parse errors. */
 void gumbo_destroy_output(GumboOutput* output);
+
+/**
+ * Access the prev/next node to `node` in the given document.
+ * This function iterates through nodes in document order (i.e.
+ * as they appeared in the original document)
+ */
+GumboNode *gumbo_next_in_doc(GumboOutput *output, GumboNode *node);
+GumboNode *gumbo_prev_in_doc(GumboOutput *output, GumboNode *node);
 
 /**
  * Set the memory allocator to be used by the library.
