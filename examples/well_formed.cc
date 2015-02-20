@@ -55,8 +55,6 @@ int main(int argc, char** argv) {
   
   GumboOutput* output = gumbo_parse_with_options(&myoptions, contents.data(), contents.length());
 
-  GumboParser parser;
-  parser._options = &myoptions; 
   const GumboVector* errors  = &output->errors;
   for (int i=0; i< errors->length; ++i) {
     GumboError* er = static_cast<GumboError*>(errors->data[i]);
@@ -64,12 +62,12 @@ int main(int argc, char** argv) {
     unsigned int colnum = er->position.column;
     unsigned int typenum = er->type;
     GumboStringBuffer text;
-    gumbo_string_buffer_init(&parser, &text);
-    gumbo_error_to_string(&parser, er, &text);
+    gumbo_string_buffer_init(&text);
+    gumbo_error_to_string(er, &text);
     std::string errmsg(text.data, text.length);
     fprintf(stdout, "line: %d col: %d type %d %s\n", linenum, colnum, typenum, errmsg.c_str());
-    gumbo_string_buffer_destroy(&parser, &text);
-    gumbo_print_caret_diagnostic(&parser, er, contents.c_str());
+    gumbo_string_buffer_destroy(&text);
+    gumbo_print_caret_diagnostic(er, contents.c_str());
   }
-  gumbo_destroy_output(&myoptions, output);
+  gumbo_destroy_output(output);
 }
