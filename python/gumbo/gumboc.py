@@ -352,6 +352,7 @@ NodeVector._type_ = Node
 class Options(ctypes.Structure):
   _fields_ = [
       ('tab_stop', ctypes.c_int),
+      ('use_xhtml_rules', ctypes.c_bool),
       ('stop_on_first_error', ctypes.c_bool),
       ('max_errors', ctypes.c_int),
       ]

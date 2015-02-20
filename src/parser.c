@@ -56,6 +56,7 @@ static void free_node(GumboNode* node);
 const GumboOptions kGumboDefaultOptions = {
   8,
   false,
+  false,
   -1,
 };
 
@@ -2158,6 +2159,21 @@ static bool handle_in_head(GumboParser* parser, GumboToken* token) {
     // should specifically look for that string in the document and re-encode it
     // before passing to Gumbo.
     return true;
+
+    // XHTML5 Parser support for cdata and rcdata in head to fix <title/> and etc
+  } else if (parser->_options->use_xhtml_rules  && token->v.start_tag.is_self_closing &&
+             tag_in(token, kStartTag, (gumbo_tagset) { TAG(IFRAME), TAG(NOEMBED), 
+                   TAG(NOFRAMES), TAG(NOSCRIPT), TAG(SCRIPT), TAG(STYLE), 
+                   TAG(TEXTAREA), TAG(TITLE), TAG(XMP) })) {
+    insert_element_from_token(parser, token);
+    return true;
+  } else if (parser->_options->use_xhtml_rules  && 
+             tag_in(token, kEndTag,(gumbo_tagset) { TAG(IFRAME), TAG(NOEMBED), 
+                   TAG(NOFRAMES), TAG(NOSCRIPT), TAG(SCRIPT), TAG(STYLE), 
+                   TAG(TEXTAREA), TAG(TITLE), TAG(XMP) })) {
+    pop_current_node(parser);
+    return true;
+
   } else if (tag_is(token, kStartTag, GUMBO_TAG_TITLE)) {
     run_generic_parsing_algorithm(parser, token, GUMBO_LEX_RCDATA);
     return true;
@@ -4030,6 +4046,10 @@ GumboOutput* gumbo_parse_fragment(
   GumboToken token;
   bool has_error = false;
 
+  // XHTML5 parsing support
+  bool inject_end = false;
+  GumboToken injected_token;
+
   do {
     if (state->_reprocess_current_token) {
       state->_reprocess_current_token = false;
@@ -4066,6 +4086,31 @@ GumboOutput* gumbo_parse_fragment(
         !(token.type == GUMBO_TOKEN_START_TAG &&
           token.v.start_tag.is_self_closing);
 
+
+    if (parser._options->use_xhtml_rules) {
+      // XHTML5 Parser support
+      // prepare to inject an end tag token if token is not a proper 
+      // void element but is a self-closing start tag
+      // no memory is allocated so no free is ever needed
+      if (token.type == GUMBO_TOKEN_START_TAG && token.v.start_tag.is_self_closing) {
+        if (!tag_in(&token, true, (gumbo_tagset) { TAG(AREA), TAG(BASE), 
+                TAG(BASEFONT), TAG(BGSOUND), TAG(BR), TAG(COL), 
+                TAG(EMBED), TAG(FRAME), TAG(HR), TAG(IMAGE), 
+                TAG(IMG), TAG(INPUT), TAG(ISINDEX), TAG(KEYGEN), 
+                TAG(LINK), TAG(MENUITEM), TAG(META), TAG(PARAM), 
+                TAG(SOURCE), TAG(SPACER), TAG(TRACK), TAG(WBR) })) {
+          inject_end = true;
+          // since self closing tag,  end tag should share same 
+          // position and original text information as start tag
+          // but have no attributes
+          injected_token.type = GUMBO_TOKEN_END_TAG;
+          injected_token.v.end_tag = token.v.start_tag.tag;
+          injected_token.position = token.position;
+          injected_token.original_text = token.original_text;
+        }
+      }
+    }
+
     has_error = !handle_token(&parser, &token) || has_error;
 
     // Check for memory leaks when ownership is transferred from start tag
@@ -4073,6 +4118,16 @@ GumboOutput* gumbo_parse_fragment(
     assert(state->_reprocess_current_token ||
            token.type != GUMBO_TOKEN_START_TAG ||
            token.v.start_tag.attributes.data == NULL);
+
+    if (parser._options->use_xhtml_rules && inject_end && !state->_self_closing_flag_acknowledged) {
+      // XHTML5 Parser support - immediately inject end tag if self-closing 
+      // non-void start tag was just processed
+      // which the html5 parser treats only as a start tag
+      state->_current_token = &injected_token;
+      state->_self_closing_flag_acknowledged = true;
+      has_error = !handle_token(&parser, &injected_token) || has_error;
+      inject_end = false;
+    }
 
     if (!state->_self_closing_flag_acknowledged) {
       GumboError* error = parser_add_parse_error(&parser, &token);

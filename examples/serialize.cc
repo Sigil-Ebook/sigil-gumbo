@@ -78,33 +78,34 @@ static std::string substitute_xml_entities_into_attributes(char quote, const std
  return result;
 }
 
-
-static std::string handle_unknown_tag(GumboStringPiece *text)
-{
-  std::string tagname = "";
-  if (text->data == NULL) {
-    return tagname;
-  }
-  // work with copy GumboStringPiece to prevent asserts 
-  // if try to read same unknown tag name more than once
-  GumboStringPiece gsp = *text;
-  gumbo_tag_from_original_text(&gsp);
-  tagname = std::string(gsp.data, gsp.length);
-  return tagname; 
-}
-
-
 static std::string get_tag_name(GumboNode *node)
 {
   std::string tagname;
-  // work around lack of proper name for document node
   if (node->type == GUMBO_NODE_DOCUMENT) {
     tagname = "document";
-  } else {
-    tagname = gumbo_normalized_tagname(node->v.element.tag);
+    return tagname;
   }
-  if (tagname.empty()) {
-    tagname = handle_unknown_tag(&node->v.element.original_tag);
+  tagname = gumbo_normalized_tagname(node->v.element.tag);
+  if ((tagname.empty()) ||
+      (node->v.element.tag_namespace == GUMBO_NAMESPACE_SVG)) {
+
+    // set up to examine original text of tag
+    GumboStringPiece gsp = node->v.element.original_tag;
+    gumbo_tag_from_original_text(&gsp);
+
+    // special handling for some svg tag names
+    if (node->v.element.tag_namespace  == GUMBO_NAMESPACE_SVG) {
+      const char * data = gumbo_normalize_svg_tagname(&gsp);
+      // NOTE: data may not be null-terminated!
+      // since case change only - length must be same as original
+      // if no replacement returns null, not orginal tag!
+      if (data != NULL) {
+        return std::string(data, gsp.length);
+      }
+    }
+    if (tagname.empty()) {
+      return std::string(gsp.data, gsp.length);
+    }
   }
   return tagname;
 }
@@ -188,17 +189,23 @@ static std::string serialize_contents(GumboNode* node) {
         contents.append(substitute_xml_entities_into_text(std::string(child->v.text.text)));
       }
 
-    } else if (child->type == GUMBO_NODE_ELEMENT || child->type == GUMBO_NODE_TEMPLATE) {
+    } else if (child->type == GUMBO_NODE_ELEMENT) {
       contents.append(serialize(child));
 
     } else if (child->type == GUMBO_NODE_WHITESPACE) {
       // keep all whitespace to keep as close to original as possible
       contents.append(std::string(child->v.text.text));
 
-    } else if (child->type != GUMBO_NODE_COMMENT) {
-      // Does this actually exist: (child->type == GUMBO_NODE_CDATA)
+    } else if (child->type == GUMBO_NODE_CDATA) {
+      contents.append("<![CDATA[" + std::string(child->v.text.text) + "]]>");
+
+    } else if (child->type == GUMBO_NODE_COMMENT) {
+      contents.append("<!--" + std::string(child->v.text.text) + "-->");
+ 
+    } else {
       fprintf(stderr, "unknown element of type: %d\n", child->type); 
     }
+
   }
   return contents;
 }
@@ -279,9 +286,10 @@ int main(int argc, char** argv) {
   in.read(&contents[0], contents.size());
   in.close();
  
-  GumboOptions options = kGumboDefaultOptions;
+  GumboOptions myoptions = kGumboDefaultOptions;
+  myoptions.use_xhtml_rules = true;
 
-  GumboOutput* output = gumbo_parse_with_options(&options, contents.data(), contents.length());
+  GumboOutput* output = gumbo_parse_with_options(&myoptions, contents.data(), contents.length());
   std::cout << serialize(output->document) << std::endl;
-  gumbo_destroy_output(output);
+  gumbo_destroy_output(&kGumboDefaultOptions, output);
 }
