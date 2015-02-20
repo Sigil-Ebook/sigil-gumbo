@@ -49,7 +49,7 @@ class GumboParserTest : public ::testing::Test {
   virtual void ParseFragment(
       const char* input, GumboTag context, GumboNamespaceEnum context_ns) {
     if (output_) {
-      gumbo_destroy_output(&options_, output_);
+      gumbo_destroy_output(output_);
     }
 
     output_ = gumbo_parse_fragment(
