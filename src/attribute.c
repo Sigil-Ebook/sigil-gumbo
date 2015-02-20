@@ -37,7 +37,7 @@ GumboAttribute* gumbo_get_attribute(
   return NULL;
 }
 
-void gumbo_set_attribute_value(GumboAttribute *attr, const char *value)
+void gumbo_attribute_set_value(GumboAttribute *attr, const char *value)
 {
   gumbo_free((void *)attr->value);
   attr->value = gumbo_strdup(value);
@@ -46,9 +46,16 @@ void gumbo_set_attribute_value(GumboAttribute *attr, const char *value)
   attr->value_end = kGumboEmptySourcePosition;
 }
 
-void gumbo_set_attribute(
-    GumboVector *attributes, const char *name, const char *value)
+void gumbo_destroy_attribute(GumboAttribute* attribute) {
+  gumbo_free((void*) attribute->name);
+  gumbo_free((void*) attribute->value);
+  gumbo_free((void*) attribute);
+}
+
+void gumbo_element_set_attribute(
+    GumboElement *element, const char *name, const char *value)
 {
+  GumboVector *attributes = &element->attributes;
   GumboAttribute *attr = gumbo_get_attribute(attributes, name);
 
   if (!attr) {
@@ -64,11 +71,19 @@ void gumbo_set_attribute(
     gumbo_vector_add(attr, attributes);
   }
 
-  gumbo_set_attribute_value(attr, value);
+  gumbo_attribute_set_value(attr, value);
 }
 
-void gumbo_destroy_attribute(GumboAttribute* attribute) {
-  gumbo_free((void*) attribute->name);
-  gumbo_free((void*) attribute->value);
-  gumbo_free((void*) attribute);
+void gumbo_element_remove_attribute_at(GumboElement *element, unsigned int pos) {
+  GumboAttribute *attr = element->attributes.data[pos];
+  gumbo_vector_remove_at(pos, &element->attributes);
+  gumbo_destroy_attribute(attr);
+}
+
+void gumbo_element_remove_attribute(GumboElement *element, GumboAttribute *attr) {
+  int idx = gumbo_vector_index_of(&element->attributes, attr);
+  if (idx >= 0) {
+    gumbo_vector_remove_at(idx, &element->attributes);
+    gumbo_destroy_attribute(attr);
+  }
 }

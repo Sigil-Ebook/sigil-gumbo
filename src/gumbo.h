@@ -639,6 +639,9 @@ GumboOutput* gumbo_parse_fragment(
 /** Release the memory used for the parse tree & parse errors. */
 void gumbo_destroy_output(GumboOutput* output);
 
+/** Allocate a new freestanding node */
+GumboNode *gumbo_create_node(GumboNodeType type);
+
 /** Release the memory used for a single node */
 void gumbo_destroy_node(GumboNode *node);
 

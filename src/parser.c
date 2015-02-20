@@ -4115,6 +4115,10 @@ void gumbo_destroy_output(GumboOutput* output) {
   gumbo_free(output);
 }
 
+GumboNode *gumbo_create_node(GumboNodeType type) {
+  return create_node(type);
+}
+
 void gumbo_destroy_node(GumboNode *node) {
   free_node(node);
 }
