@@ -45,7 +45,19 @@ int main(int argc, char** argv) {
   in.seekg(0, std::ios::beg);
   in.read(&contents[0], contents.size());
   in.close();
- 
+
+  // remove any xml header line and trailing whitespace
+  if (contents.compare(0,5,"<?xml") == 0) {
+    size_t end = contents.find_first_of('>', 0);
+    end = contents.find_first_not_of("\n\r\t ",end+1);
+    contents.erase(0,end);
+  }
+
+  // add in basic doctype if missing
+  if ((contents.compare(0,9,"<!DOCTYPE") != 0) && (contents.compare(0,9,"<!doctype") != 0)) {
+    contents.insert(0,"<!DOCTYPE html>\n");
+  }
+
   fprintf(stdout, "%s", contents.c_str());
 
   GumboOptions myoptions = kGumboDefaultOptions;
