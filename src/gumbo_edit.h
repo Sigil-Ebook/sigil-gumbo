@@ -47,7 +47,7 @@ extern "C" {
   // Note: Use gumbo_destroy_node(GumboNode * node) to properly destroy the node if outside 
   // the final output tree
 
-  GumboNode* gumbo_create_element_node(GumboTag tag, GumboNamespaceEnum namespace);
+  GumboNode* gumbo_create_element_node(GumboTag tag, GumboNamespaceEnum gns);
 
   // Creates an template node and returns it.
 
