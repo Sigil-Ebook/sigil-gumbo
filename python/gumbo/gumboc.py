@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# vim:ts=2:sw=2:softtabstop=2:smarttab:expandtab
+
+from __future__ import unicode_literals, print_function
+
 # Copyright 2012 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +19,24 @@
 # limitations under the License.
 #
 
+import sys
+
+PY3 = sys.version_info[0] == 3
+
+if PY3:
+    text_type = str
+    binary_type = bytes
+else:
+    text_type = unicode
+    binary_type = str
+
+# When supporting both python 2 and 3 using one code base, using str(obj) is confusing 
+# at best since its return type is python version specific
+# Notes: 
+#   - The unicode(obj) operator does not exist in PY3
+#   - The bytes(obj) exists and works on both python >= 2.6
+
+
 """CTypes bindings for the Gumbo HTML5 parser.
 
 This exports the raw interface of the library as a set of very thin ctypes
@@ -22,7 +46,6 @@ Pythonic API.
 
 __author__ = 'jdtang@google.com (Jonathan Tang)'
 
-import sys
 import contextlib
 import ctypes
 import os.path
@@ -103,6 +126,7 @@ class Enum(ctypes.c_uint):
                        (self.value, self._values_))
 
 
+
 class StringPiece(ctypes.Structure):
   _fields_ = [
       ('data', _Ptr(ctypes.c_char)),
@@ -110,9 +134,17 @@ class StringPiece(ctypes.Structure):
       ]
 
   def __len__(self):
+    if PY3:
+      return len(ctypes.string_at(self.data, self.length).decode('utf-8'))
     return self.length
 
   def __str__(self):
+    # Note in Python3 the str() method may **never** return bytes 
+    if PY3:
+      return ctypes.string_at(self.data, self.length).decode('utf-8')
+    return ctypes.string_at(self.data, self.length)
+
+  def __bytes__(self):
     return ctypes.string_at(self.data, self.length)
 
 
@@ -273,10 +305,14 @@ class Element(ctypes.Structure):
     if self.tag_namespace == Namespace.SVG:
       svg_tagname = _normalize_svg_tagname(ctypes.byref(original_tag))
       if svg_tagname is not None:
+        if PY3:
+          return bytes(svg_tagname)
         return str(svg_tagname)
     if self.tag == Tag.UNKNOWN:
       if original_tag.data is None:
         return ''
+      if PY3: 
+          return (bytes(original_tag).decode('utf-8').lower()).encode('utf-8')
       return str(original_tag).lower()
     return _tagname(self.tag)
 
@@ -380,7 +416,10 @@ def parse(text, **kwargs):
   # outlives the parse output.  If we let ctypes do it automatically on function
   # call, it creates a temporary buffer which is destroyed when the call
   # completes, and then the original_text pointers point into invalid memory.
-  text_ptr = ctypes.c_char_p(text.encode('utf-8'))
+  # convert string to be utf-8 encoded
+  if isinstance(text, text_type):
+    text = text.encode('utf-8')
+  text_ptr = ctypes.c_char_p(text)
   output = _parse_fragment(
       ctypes.byref(options), text_ptr, len(text),
       context_tag, context_namespace)

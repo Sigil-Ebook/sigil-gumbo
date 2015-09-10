@@ -73,13 +73,13 @@ static const char * attribute_nsprefixes[4] = { "", "xlink:", "xml:", "xmlns:" }
 
 static inline void rtrim(std::string &s) 
 {
-  s.erase(s.find_last_not_of(" \n\r\t")+1);
+  s.erase(s.find_last_not_of(" \n\r\t\v\f")+1);
 }
 
 
 static inline void ltrim(std::string &s)
 {
-  s.erase(0,s.find_first_not_of(" \n\r\t"));
+  s.erase(0,s.find_first_not_of(" \n\r\t\v\f"));
 }
 
 
@@ -89,6 +89,7 @@ static inline void ltrimnewlines(std::string &s)
 }
 
 
+// erase everything up to and including the newline
 static void newlinetrim(std::string &s)
 {
   size_t pos = s.find("\n");
