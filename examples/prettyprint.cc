@@ -21,15 +21,55 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string>
+#include <unordered_set>
 
 #include "gumbo.h"
 
-static std::string nonbreaking_inline  = "|a|abbr|acronym|b|bdo|big|cite|code|dfn|em|font|i|img|kbd|nobr|s|small|span|strike|strong|sub|sup|tt|";
-static std::string empty_tags          = "|area|base|basefont|bgsound|br|command|col|embed|event-source|frame|hr|image|img|input|keygen|link|menuitem|meta|param|source|spacer|track|wbr|";
-static std::string preserve_whitespace = "|pre|textarea|script|style|";
-static std::string special_handling    = "|html|body|";
-static std::string no_entity_sub       = "|script|style|";
-static std::string treat_like_inline   = "|p|";
+static std::unordered_set<std::string> nonbreaking_inline  = { 
+    "a","abbr","acronym","b","bdo","big","br","button","cite","code","del",
+    "dfn","em","font","i","image","img","input","ins","kbd","label","map",
+    "nobr","object","q","s","samp","select","small","span","strike","strong",
+    "sub","sup","textarea","tt","u","var","wbr"
+};
+
+
+static std::unordered_set<std::string> preserve_whitespace = {
+    "pre","textarea","script","style"
+};
+
+
+static std::unordered_set<std::string> special_handling    = { 
+    "html","body"
+};
+
+
+static std::unordered_set<std::string> no_entity_sub       = {
+    "script","style"
+};
+
+
+static std::unordered_set<std::string> empty_tags          = {
+    "area","base","basefont","bgsound","br","command","col","embed",
+    "event-source","frame","hr","image","img","input","keygen","link",
+    "menuitem","meta","param","source","spacer","track","wbr"
+};
+
+
+static std::unordered_set<std::string> structural_tags     = {
+    "article","aside","blockquote","body","canvas","div","dl","figure",
+    "footer","head","header","hr","html","ol","section","script","style",
+    "table","ul"
+};
+
+
+static inline bool in_set(std::unordered_set<std::string> &s, std::string &key)
+{
+  return s.find(key) != s.end();
+}
+
+// These need to match the GumboAttributeNamespaceEnum sequence
+static const char * attribute_nsprefixes[4] = { "", "xlink:", "xml:", "xmlns:" };
+
 
 static inline void rtrim(std::string &s) 
 {
@@ -40,6 +80,21 @@ static inline void rtrim(std::string &s)
 static inline void ltrim(std::string &s)
 {
   s.erase(0,s.find_first_not_of(" \n\r\t"));
+}
+
+
+static inline void ltrimnewlines(std::string &s)
+{
+  s.erase(0,s.find_first_not_of("\n\r"));
+}
+
+
+static void newlinetrim(std::string &s)
+{
+  size_t pos = s.find("\n");
+  if (pos != std::string::npos) {
+    s.erase(0, pos+1);
+  }
 }
 
 
@@ -83,7 +138,13 @@ static std::string get_tag_name(GumboNode *node)
 {
   std::string tagname;
   if (node->type == GUMBO_NODE_DOCUMENT) {
-    tagname = "document";
+    tagname = "#document";
+    return tagname;
+  } else if ((node->type == GUMBO_NODE_TEXT) || (node->type == GUMBO_NODE_WHITESPACE)) {
+    tagname = "#text";
+    return tagname;
+  } else if (node->type == GUMBO_NODE_CDATA) {
+    tagname = "#cdata";
     return tagname;
   }
   tagname = gumbo_normalized_tagname(node->v.element.tag);
@@ -122,7 +183,7 @@ static std::string build_doctype(GumboNode *node)
     if ((node->v.document.public_identifier != NULL) && !pi.empty() ) {
         results.append(" PUBLIC \"");
         results.append(node->v.document.public_identifier);
-        results.append("\" \"");
+        results.append("\"\n    \"");
         results.append(node->v.document.system_identifier);
         results.append("\"");
     }
@@ -132,66 +193,75 @@ static std::string build_doctype(GumboNode *node)
 }
 
 
+// handle the known foreign attribute namespaces
+static std::string get_attribute_name(GumboAttribute * at)
+{
+  std::string attr_name = at->name;
+  GumboAttributeNamespaceEnum attr_ns = at->attr_namespace;
+  if ((attr_ns == GUMBO_ATTR_NAMESPACE_NONE) || (attr_name == "xmlns")) {
+    return attr_name;
+  } 
+  attr_name = std::string(attribute_nsprefixes[attr_ns]) + attr_name;
+  return attr_name;
+}
+
+
 static std::string build_attributes(GumboAttribute * at, bool no_entities)
 {
-  std::string atts = "";
-  atts.append(" ");
-  atts.append(at->name);
+  std::string atts = " ";
+  std::string name = get_attribute_name(at);
+  atts.append(name);
+  std::string attvalue = at->value;
 
-  // how do we want to handle attributes with empty values
-  // <input type="checkbox" checked />  or <input type="checkbox" checked="" /> 
+  // we handle empty attribute values like so: alt=""
+  char quote = '"';
+  std::string qs="\"";
 
-  if ( (!std::string(at->value).empty())   || 
+  if ( (!attvalue.empty())   || 
        (at->original_value.data[0] == '"') || 
        (at->original_value.data[0] == '\'') ) {
 
     // determine original quote character used if it exists
-    char quote = at->original_value.data[0];
-    std::string qs = "";
+    quote = at->original_value.data[0];
     if (quote == '\'') qs = std::string("'");
     if (quote == '"') qs = std::string("\"");
-
-    atts.append("=");
-
-    atts.append(qs);
-
-    if (no_entities) {
-      atts.append(at->value);
-    } else {
-      atts.append(substitute_xml_entities_into_attributes(quote, std::string(at->value)));
-    }
-
-    atts.append(qs);
   }
+
+  atts.append("=");
+  atts.append(qs);
+  if (no_entities) {
+    atts.append(attvalue);
+  } else {
+    atts.append(substitute_xml_entities_into_attributes(quote, attvalue));
+  }
+  atts.append(qs);
   return atts;
 }
-
 
 // forward declaration
 
 static std::string prettyprint(GumboNode*, int lvl, const std::string indent_chars);
 
 
-// prettyprint children of a node
-// may be invoked recursively
-
-static std::string prettyprint_contents(GumboNode* node, int lvl, const std::string indent_chars) {
-
+static std::string prettyprint_contents(GumboNode* node, int lvl, const std::string indent_chars) 
+{
   std::string contents        = "";
   std::string tagname         = get_tag_name(node);
-  std::string key             = "|" + tagname + "|";
-  bool no_entity_substitution = no_entity_sub.find(key) != std::string::npos;
-  bool keep_whitespace        = preserve_whitespace.find(key) != std::string::npos;
-  bool is_inline              = nonbreaking_inline.find(key) != std::string::npos;
+  bool no_entity_substitution = in_set(no_entity_sub, tagname);
+  bool keep_whitespace        = in_set(preserve_whitespace, tagname);
+  bool is_inline              = in_set(nonbreaking_inline, tagname);
+  bool is_structural          = in_set(structural_tags, tagname);
   bool pp_okay                = !is_inline && !keep_whitespace;
+  char c                      = indent_chars.at(0);
+  int  n                      = indent_chars.length(); 
 
   GumboVector* children = &node->v.element.children;
 
   for (unsigned int i = 0; i < children->length; ++i) {
+
     GumboNode* child = static_cast<GumboNode*> (children->data[i]);
 
     if (child->type == GUMBO_NODE_TEXT) {
-
       std::string val;
 
       if (no_entity_substitution) {
@@ -200,33 +270,24 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
         val = substitute_xml_entities_into_text(std::string(child->v.text.text));
       }
 
-      if (pp_okay) rtrim(val);
-
-      if (pp_okay && (contents.length() == 0)) {
-        // add required indentation
-        char c = indent_chars.at(0);
-        int n  = indent_chars.length();
-        contents.append(std::string((lvl-1)*n,c));
-      }
-
-      contents.append(val);
-
-
-    } else if (child->type == GUMBO_NODE_ELEMENT || child->type == GUMBO_NODE_TEMPLATE) {
-
-      std::string val = prettyprint(child, lvl, indent_chars);
-
-      // remove any indentation if this child is inline and not first child
-      std::string childname = get_tag_name(child);
-      std::string childkey = "|" + childname + "|";
-      if ((nonbreaking_inline.find(childkey) != std::string::npos) && (contents.length() > 0)) {
+      // if first child of a structual element is text, indent it properly
+      if ((i==0) && is_structural) {
+        std::string indent_space = std::string((lvl-1)*n,c);
+        contents.append(indent_space);
         ltrim(val);
       }
       contents.append(val);
 
+    } else if (child->type == GUMBO_NODE_ELEMENT || child->type == GUMBO_NODE_TEMPLATE) {
+
+      std::string val = prettyprint(child, lvl, indent_chars);
+      contents.append(val);
+
     } else if (child->type == GUMBO_NODE_WHITESPACE) {
+
       if (keep_whitespace || is_inline) {
-        contents.append(std::string(child->v.text.text));
+        std::string wspace = std::string(child->v.text.text);
+        contents.append(wspace);
       }
 
     } else if (child->type == GUMBO_NODE_CDATA) {
@@ -248,7 +309,8 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
 // prettyprint a GumboNode back to html/xhtml
 // may be invoked recursively
 
-static std::string prettyprint(GumboNode* node, int lvl, const std::string indent_chars) {
+static std::string prettyprint(GumboNode* node, int lvl, const std::string indent_chars)
+{
 
   // special case the document node
   if (node->type == GUMBO_NODE_DOCUMENT) {
@@ -261,13 +323,15 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
   std::string closeTag           = "";
   std::string atts               = "";
   std::string tagname            = get_tag_name(node);
-  std::string key                = "|" + tagname + "|";
-  bool need_special_handling     =  special_handling.find(key) != std::string::npos;
-  bool is_empty_tag              = empty_tags.find(key) != std::string::npos;
-  bool no_entity_substitution    = no_entity_sub.find(key) != std::string::npos;
-  bool keep_whitespace           = preserve_whitespace.find(key) != std::string::npos;
-  bool is_inline                 = nonbreaking_inline.find(key) != std::string::npos;
-  bool inline_like               = treat_like_inline.find(key) != std::string::npos;
+  std::string parentname         = get_tag_name(node->parent);
+
+  bool in_head                   = (parentname == "head");
+  bool need_special_handling     = in_set(special_handling, tagname);
+  bool is_empty_tag              = in_set(empty_tags, tagname);
+  bool no_entity_substitution    = in_set(no_entity_sub, tagname);
+  bool keep_whitespace           = in_set(preserve_whitespace, tagname);
+  bool is_inline                 = in_set(nonbreaking_inline, tagname) && !in_set(structural_tags, parentname);
+  bool is_structural             = in_set(structural_tags, tagname);
   bool pp_okay                   = !is_inline && !keep_whitespace;
   char c                         = indent_chars.at(0);
   int  n                         = indent_chars.length(); 
@@ -281,19 +345,24 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
 
   // determine closing tag type
   if (is_empty_tag) {
-      close = "/";
+    close = "/";
   } else {
-      closeTag = "</" + tagname + ">";
+    closeTag = "</" + tagname + ">";
   }
 
   std::string indent_space = std::string((lvl-1)*n,c);
+  std::string contents;
 
-  // prettyprint your contents 
-  std::string contents = prettyprint_contents(node, lvl+1, indent_chars);
+  // prettyprint your contents
+  if (is_structural && tagname != "html") {
+    contents = prettyprint_contents(node, lvl+1, indent_chars);
+  } else {
+    contents = prettyprint_contents(node, lvl, indent_chars);
+  }
 
-  if (need_special_handling) {
+  if (is_structural) {
     rtrim(contents);
-    contents.append("\n");
+    if (!contents.empty()) contents.append("\n");
   }
 
   char last_char = ' ';
@@ -303,30 +372,37 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
 
   // build results
   std::string results;
-  if (pp_okay) {
+
+  if (!is_inline) {
     results.append(indent_space);
   }
+
   results.append("<"+tagname+atts+close+">");
-  if (pp_okay && !inline_like) {
+
+  if (pp_okay && is_structural && !contents.empty()) {
     results.append("\n");
   }
-  if (inline_like) {
-    ltrim(contents);
-  }
+
   results.append(contents);
-  if (pp_okay && !contents.empty() && (last_char != '\n') && (!inline_like)) {
+
+  if (pp_okay && (last_char != '\n') && !contents.empty() && is_structural) {
     results.append("\n");
   }
-  if (pp_okay && !inline_like && !closeTag.empty()) {
+
+  // handle any indent before structural close tags
+  if (!is_inline && is_structural && !closeTag.empty() && !contents.empty()) {
     results.append(indent_space);
   }
+
   results.append(closeTag);
-  if (pp_okay && !closeTag.empty()) {
+
+  if (pp_okay) {
     results.append("\n");
   }
 
   return results;
 }
+
 
 
 int main(int argc, char** argv) {
