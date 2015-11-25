@@ -56,9 +56,14 @@ static std::unordered_set<std::string> empty_tags          = {
 
 
 static std::unordered_set<std::string> structural_tags     = {
-    "article","aside","blockquote","body","canvas","div","dl","figure",
-    "footer","head","header","hr","html","ol","section","script","style",
-    "table","ul"
+  "article","aside","blockquote","body","canvas","colgroup","div","dl",
+  "figure","footer","head","header","hr","html","ol","section","script",
+  "style","table","tbody","tfoot","thead","td","th","tr","ul"
+};
+
+static std::unordered_set<std::string> other_text_holders = {
+  "address","caption","dd","div","dt","h1","h2","h3","h4","h5","h6",
+  "legend","li","option","p","td","th","title"
 };
 
 
@@ -252,11 +257,14 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
   bool keep_whitespace        = in_set(preserve_whitespace, tagname);
   bool is_inline              = in_set(nonbreaking_inline, tagname);
   bool is_structural          = in_set(structural_tags, tagname);
-  bool pp_okay                = !is_inline && !keep_whitespace;
+  // bool pp_okay                = !is_inline && !keep_whitespace;
   char c                      = indent_chars.at(0);
   int  n                      = indent_chars.length(); 
+  char last_char              = 'x';
 
   GumboVector* children = &node->v.element.children;
+
+  if (is_structural) last_char = '\n';
 
   for (unsigned int i = 0; i < children->length; ++i) {
 
@@ -272,7 +280,7 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
       }
 
       // if first child of a structual element is text, indent it properly
-      if ((i==0) && is_structural) {
+      if (is_structural && last_char == '\n') {
         std::string indent_space = std::string((lvl-1)*n,c);
         contents.append(indent_space);
         ltrim(val);
@@ -282,13 +290,24 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
     } else if (child->type == GUMBO_NODE_ELEMENT || child->type == GUMBO_NODE_TEMPLATE) {
 
       std::string val = prettyprint(child, lvl, indent_chars);
+      std::string childname = get_tag_name(child);
+      if (is_structural && in_set(nonbreaking_inline, childname) && (last_char == '\n')) {
+        std::string indent_space = std::string((lvl-1)*n,c);
+        contents.append(indent_space);
+        ltrim(val);
+      }    
       contents.append(val);
+
 
     } else if (child->type == GUMBO_NODE_WHITESPACE) {
 
-      if (keep_whitespace || is_inline) {
+      if (keep_whitespace) {
         std::string wspace = std::string(child->v.text.text);
         contents.append(wspace);
+      } else if (is_inline || in_set(other_text_holders, tagname)) {
+        if (std::string(" \t\v\f\r\n").find(last_char) == std::string::npos) {
+          contents.append(std::string(" "));
+        }
       }
 
     } else if (child->type == GUMBO_NODE_CDATA) {
@@ -299,6 +318,11 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
  
     } else {
       fprintf(stderr, "unknown element of type: %d\n", child->type); 
+    }
+
+    // update last character of current contents
+    if (!contents.empty()) {
+      last_char = contents.at(contents.length()-1);
     }
 
   }
@@ -327,7 +351,7 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
   std::string parentname         = get_tag_name(node->parent);
 
   bool in_head                   = (parentname == "head");
-  bool need_special_handling     = in_set(special_handling, tagname);
+  // bool need_special_handling     = in_set(special_handling, tagname);
   bool is_empty_tag              = in_set(empty_tags, tagname);
   bool no_entity_substitution    = in_set(no_entity_sub, tagname);
   bool keep_whitespace           = in_set(preserve_whitespace, tagname);
@@ -366,6 +390,12 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
     if (!contents.empty()) contents.append("\n");
   }
 
+  // remove any leading or trailing whitespace form within paragraphs
+  if (tagname == "p") {
+    ltrim(contents);
+    rtrim(contents);
+  }
+
   char last_char = ' ';
   if (!contents.empty()) {
     last_char = contents.at(contents.length()-1);
@@ -397,7 +427,8 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
 
   results.append(closeTag);
 
-  if (pp_okay) {
+  if (pp_okay && !in_set(nonbreaking_inline, parentname) && (parentname != "li")) 
+  {
     results.append("\n");
   }
 
