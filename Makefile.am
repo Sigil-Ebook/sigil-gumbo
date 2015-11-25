@@ -109,7 +109,8 @@ endif
 
 noinst_PROGRAMS = clean_text find_links get_title positions_of_class benchmark serialize prettyprint well_formed
 LDADD = libgumbo.la
-AM_CPPFLAGS = -std=c++11 -I"$(srcdir)/src"
+AM_CPPFLAGS = -I"$(srcdir)/src"
+AM_CXXFLAGS = -std=c++11 -I"$(srcdir)/src"
 
 clean_text_SOURCES = examples/clean_text.cc
 find_links_SOURCES = examples/find_links.cc

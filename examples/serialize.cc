@@ -54,6 +54,11 @@ static std::unordered_set<std::string> empty_tags          = {
     "menuitem","meta","param","source","spacer","track","wbr"
 };
 
+static std::unordered_set<std::string> structural_tags     = {
+  "article","aside","blockquote","body","canvas","colgroup","div","dl",
+  "figure","footer","head","header","hr","html","ol","section","script",
+  "style","table","tbody","tfoot","thead","td","th","tr","ul"
+};
 
 
 static inline bool in_set(std::unordered_set<std::string> &s, std::string &key)
@@ -247,6 +252,7 @@ static std::string serialize_contents(GumboNode* node) {
   bool no_entity_substitution = in_set(no_entity_sub, tagname);
   bool keep_whitespace        = in_set(preserve_whitespace, tagname);
   bool is_inline              = in_set(nonbreaking_inline, tagname);
+  bool is_structural          = in_set(structural_tags, tagname);
 
   // build up result for each child, recursively if need be
   GumboVector* children = &node->v.element.children;
@@ -268,7 +274,7 @@ static std::string serialize_contents(GumboNode* node) {
       contents.append(serialize(child));
       inject_newline = false;
       std::string childname = get_tag_name(child);
-      if (!is_inline && !keep_whitespace && !in_set(nonbreaking_inline, childname)) { 
+      if (!is_inline && !keep_whitespace && !in_set(nonbreaking_inline, childname) && is_structural) { 
         contents.append("\n");
         inject_newline = true;
       }
@@ -319,7 +325,6 @@ static std::string serialize(GumboNode* node) {
   bool need_special_handling     = in_set(special_handling, tagname);
   bool is_empty_tag              = in_set(empty_tags, tagname);
   bool no_entity_substitution    = in_set(no_entity_sub, tagname);
-  bool is_inline                 = in_set(nonbreaking_inline, tagname);
 
   // build attr string  
   const GumboVector * attribs = &node->v.element.attributes;

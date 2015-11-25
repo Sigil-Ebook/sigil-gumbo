@@ -54,8 +54,8 @@ static bool handle_in_template(GumboParser*, GumboToken*);
 static void free_node(GumboNode* node);
 
 const GumboOptions kGumboDefaultOptions = {
-  8,
-  false,
+  4,
+  true,
   false,
   -1,
 };
@@ -583,6 +583,10 @@ static GumboInsertionMode get_appropriate_insertion_mode(const GumboParser* pars
   }
 
   assert(node->type == GUMBO_NODE_ELEMENT || node->type == GUMBO_NODE_TEMPLATE);
+  if (node->v.element.tag_namespace != GUMBO_NAMESPACE_HTML)
+    return is_last ? 
+      GUMBO_INSERTION_MODE_IN_BODY : GUMBO_INSERTION_MODE_INITIAL;
+
   switch (node->v.element.tag) {
   case GUMBO_TAG_SELECT: {
     if (is_last) {
@@ -2866,6 +2870,24 @@ static bool handle_in_body(GumboParser* parser, GumboToken* token) {
       parser->_parser_state->_form_element = NULL;
     }
     return false;
+
+
+    // XHTML5 Parser support in body to fix <iframe/> and related non-void self-closing tags
+  } else if (parser->_options->use_xhtml_rules  && token->v.start_tag.is_self_closing &&
+             tag_in(token, kStartTag, (gumbo_tagset) { TAG(IFRAME), TAG(NOEMBED), 
+                   TAG(TEXTAREA), TAG(XMP) })) {
+    if (tag_in(token, kStartTag, (gumbo_tagset) { TAG(IFRAME), TAG(TEXTAREA), TAG(XMP) })) {
+      set_frameset_not_ok(parser);
+    }
+    insert_element_from_token(parser, token);
+    return true;
+  } else if (parser->_options->use_xhtml_rules  && 
+             tag_in(token, kEndTag,(gumbo_tagset) { TAG(IFRAME), TAG(NOEMBED), 
+                   TAG(TEXTAREA), TAG(XMP) })) {
+    pop_current_node(parser);
+    return true;
+
+
   } else if (tag_is(token, kStartTag, GUMBO_TAG_TEXTAREA)) {
     run_generic_parsing_algorithm(parser, token, GUMBO_LEX_RCDATA);
     parser->_parser_state->_ignore_next_linefeed = true;
@@ -3457,7 +3479,9 @@ static bool handle_in_select(GumboParser* parser, GumboToken* token) {
   } else if (tag_is(token, kStartTag, GUMBO_TAG_SELECT)) {
     parser_add_parse_error(parser, token);
     ignore_token(parser);
-    close_current_select(parser);
+    if (has_an_element_in_select_scope(parser, GUMBO_TAG_SELECT)) {
+      close_current_select(parser);
+    }
     return false;
   } else if (tag_in(token, kStartTag, (gumbo_tagset) { TAG(INPUT), TAG(KEYGEN), TAG(TEXTAREA) })) {
     parser_add_parse_error(parser, token);
@@ -4126,13 +4150,16 @@ GumboOutput* gumbo_parse_fragment(
            token.v.start_tag.attributes.data == NULL);
 
     if (parser._options->use_xhtml_rules && inject_end && !state->_self_closing_flag_acknowledged) {
-      // XHTML5 Parser support - immediately inject end tag if self-closing 
-      // non-void start tag was just processed
-      // which the html5 parser treats only as a start tag
-      state->_current_token = &injected_token;
       state->_self_closing_flag_acknowledged = true;
-      has_error = !handle_token(&parser, &injected_token) || has_error;
-      inject_end = false;
+      // only inject when the current token is not scheduled to be reprocessed
+      if (!state->_reprocess_current_token) {
+        // XHTML5 Parser support - immediately inject end tag if self-closing 
+        // non-void start tag was just processed
+        // which the html5 parser treats only as a start tag
+        state->_current_token = &injected_token;
+        has_error = !handle_token(&parser, &injected_token) || has_error;
+        inject_end = false;
+      }
     }
 
     if (!state->_self_closing_flag_acknowledged) {
@@ -4146,7 +4173,7 @@ GumboOutput* gumbo_parse_fragment(
     assert(loop_count < 1000000000);
 
   } while ((token.type != GUMBO_TOKEN_EOF || state->_reprocess_current_token) &&
-           !(options->stop_on_first_error && has_error));
+           !(parser._options->stop_on_first_error && has_error));
 
   finish_parsing(&parser);
   // For API uniformity reasons, if the doctype still has nulls, convert them to
