@@ -1,6 +1,23 @@
 Gumbo - A pure-C HTML5 parser.
 ============
 
+
+This is a customized version of gumbo built on top of on the following repository:
+
+    https://github.com/vmg/gumbo-parser/tree/v1.0.0
+
+This repository has forked from the main repository to include memory improvements, and parser simplifications, speed improvements, and
+interface changes that allow simple editing of the tree post parsing.
+It has also been modified to supports the use of xhtml parsing rules (see the XMTML5 parsing comments in src/parser.c) and 
+modified to recognize all svg and mathml tags in the tag enum.
+
+Due to recognizing a larger set of tags, we use our own version of tag_perf.h which is a variation of a minimal perfect hash 
+function for our much larger set of tags.
+
+You can not simply replace this version of gumbo with the one from google/gumbo-parser without breaking Sigil.
+
+Here is the remainder of the official README.md
+
 [![Build Status](https://travis-ci.org/google/gumbo-parser.svg?branch=master)](https://travis-ci.org/google/gumbo-parser)
 
 Gumbo is an implementation of the [HTML5 parsing algorithm][] implemented
