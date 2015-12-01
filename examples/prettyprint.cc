@@ -355,7 +355,7 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
   bool is_empty_tag              = in_set(empty_tags, tagname);
   bool no_entity_substitution    = in_set(no_entity_sub, tagname);
   bool keep_whitespace           = in_set(preserve_whitespace, tagname);
-  bool is_inline                 = in_set(nonbreaking_inline, tagname) && !in_set(structural_tags, parentname);
+  bool is_inline                 = in_set(nonbreaking_inline, tagname) && (parentname != "body");
   bool is_structural             = in_set(structural_tags, tagname);
   bool pp_okay                   = !is_inline && !keep_whitespace;
   char c                         = indent_chars.at(0);
