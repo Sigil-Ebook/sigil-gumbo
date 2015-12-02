@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
   // remove any xml header line and trailing whitespace
   if (contents.compare(0,5,"<?xml") == 0) {
     size_t end = contents.find_first_of('>', 0);
-    end = contents.find_first_not_of("\n\r\t ",end+1);
+    end = contents.find_first_not_of("\n\r\t\v\f ",end+1);
     contents.erase(0,end);
   }
 

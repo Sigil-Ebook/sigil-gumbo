@@ -381,11 +381,23 @@ int main(int argc, char** argv) {
   in.seekg(0, std::ios::beg);
   in.read(&contents[0], contents.size());
   in.close();
- 
+
+  bool use_xml_header = false;
+  // remove any xml header line and any trailing whitespace
+  if (contents.compare(0,5,"<?xml") == 0) {
+    use_xml_header = true;
+    size_t end = contents.find_first_of('>', 5);
+    end = contents.find_first_not_of("\n\r\t\v\f ",end+1);
+    contents.erase(0,end);
+  }
+
   GumboOptions myoptions = kGumboDefaultOptions;
   myoptions.use_xhtml_rules = true;
 
   GumboOutput* output = gumbo_parse_with_options(&myoptions, contents.data(), contents.length());
+  if (use_xml_header) {
+    std::cout << "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+  }
   std::cout << serialize(output->document) << std::endl;
   gumbo_destroy_output(output);
 }
