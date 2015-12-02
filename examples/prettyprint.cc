@@ -48,7 +48,7 @@ static std::unordered_set<std::string> no_entity_sub       = {
 };
 
 
-static std::unordered_set<std::string> empty_tags          = {
+static std::unordered_set<std::string> void_tags          = {
     "area","base","basefont","bgsound","br","command","col","embed",
     "event-source","frame","hr","image","img","input","keygen","link",
     "menuitem","meta","param","source","spacer","track","wbr"
@@ -57,8 +57,8 @@ static std::unordered_set<std::string> empty_tags          = {
 
 static std::unordered_set<std::string> structural_tags     = {
   "article","aside","blockquote","body","canvas","colgroup","div","dl",
-  "figure","footer","head","header","hr","html","ol","section","script",
-  "style","table","tbody","tfoot","thead","td","th","tr","ul"
+  "figure","footer","head","header","hr","html","ol","section",
+  "table","tbody","tfoot","thead","td","th","tr","ul"
 };
 
 static std::unordered_set<std::string> other_text_holders = {
@@ -123,6 +123,7 @@ static std::string substitute_xml_entities_into_text(const std::string &text)
   replace_all(result, "&", "&amp;");
   replace_all(result, "<", "&lt;");
   replace_all(result, ">", "&gt;");
+  replace_all(result, "\xc2\xa0", "&#160;");
   return result;
 }
 
@@ -257,7 +258,6 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
   bool keep_whitespace        = in_set(preserve_whitespace, tagname);
   bool is_inline              = in_set(nonbreaking_inline, tagname);
   bool is_structural          = in_set(structural_tags, tagname);
-  // bool pp_okay                = !is_inline && !keep_whitespace;
   char c                      = indent_chars.at(0);
   int  n                      = indent_chars.length(); 
   char last_char              = 'x';
@@ -279,7 +279,7 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
         val = substitute_xml_entities_into_text(std::string(child->v.text.text));
       }
 
-      // if first child of a structual element is text, indent it properly
+      // if child of a structual element is text and follows a newline, indent it properly
       if (is_structural && last_char == '\n') {
         std::string indent_space = std::string((lvl-1)*n,c);
         contents.append(indent_space);
@@ -291,6 +291,7 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
 
       std::string val = prettyprint(child, lvl, indent_chars);
       std::string childname = get_tag_name(child);
+      // if child of a structual element is inline and follows a newline, indent it properly
       if (is_structural && in_set(nonbreaking_inline, childname) && (last_char == '\n')) {
         std::string indent_space = std::string((lvl-1)*n,c);
         contents.append(indent_space);
@@ -333,7 +334,6 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
 
 // prettyprint a GumboNode back to html/xhtml
 // may be invoked recursively
-
 static std::string prettyprint(GumboNode* node, int lvl, const std::string indent_chars)
 {
 
@@ -344,97 +344,76 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
     return results;
   }
 
-  std::string close              = "";
-  std::string closeTag           = "";
-  std::string atts               = "";
-  std::string tagname            = get_tag_name(node);
-  std::string parentname         = get_tag_name(node->parent);
-
-  bool in_head                   = (parentname == "head");
-  // bool need_special_handling     = in_set(special_handling, tagname);
-  bool is_empty_tag              = in_set(empty_tags, tagname);
-  bool no_entity_substitution    = in_set(no_entity_sub, tagname);
-  bool keep_whitespace           = in_set(preserve_whitespace, tagname);
-  bool is_inline                 = in_set(nonbreaking_inline, tagname) && (parentname != "body");
-  bool is_structural             = in_set(structural_tags, tagname);
-  bool pp_okay                   = !is_inline && !keep_whitespace;
-  char c                         = indent_chars.at(0);
-  int  n                         = indent_chars.length(); 
+  std::string tagname = get_tag_name(node);
+  bool is_structural = in_set(structural_tags, tagname);
+  bool is_inline = in_set(nonbreaking_inline, tagname);
 
   // build attr string
+  std::string atts = "";
+  bool no_entity_substitution = in_set(no_entity_sub, tagname);
   const GumboVector * attribs = &node->v.element.attributes;
   for (int i=0; i< attribs->length; ++i) {
     GumboAttribute* at = static_cast<GumboAttribute*>(attribs->data[i]);
     atts.append(build_attributes(at, no_entity_substitution));
   }
 
-  // determine closing tag type
-  if (is_empty_tag) {
-    close = "/";
-  } else {
-    closeTag = "</" + tagname + ">";
+
+  bool is_void_tag = in_set(void_tags, tagname);
+
+  // get tag contents
+  std::string contents = "";
+  if (!is_void_tag) {
+    if (is_structural && tagname != "html") {
+      // if is structural indent the contents
+      contents = prettyprint_contents(node, lvl+1, indent_chars);
+    } else {
+      contents = prettyprint_contents(node, lvl, indent_chars);
+    }
   }
 
+  bool keep_whitespace = in_set(preserve_whitespace, tagname);
+  if (!keep_whitespace && !is_inline) {
+    rtrim(contents);
+  }
+
+  // bool single = is_void_tag || contents.empty();
+  bool single = is_void_tag;
+
+  char c = indent_chars.at(0);
+  int  n = indent_chars.length(); 
   std::string indent_space = std::string((lvl-1)*n,c);
-  std::string contents;
-
-  // prettyprint your contents
-  if (is_structural && tagname != "html") {
-    contents = prettyprint_contents(node, lvl+1, indent_chars);
-  } else {
-    contents = prettyprint_contents(node, lvl, indent_chars);
-  }
-
-  if (is_structural) {
-    rtrim(contents);
-    if (!contents.empty()) contents.append("\n");
-  }
-
-  // remove any leading or trailing whitespace form within paragraphs
-  if (tagname == "p") {
-    ltrim(contents);
-    rtrim(contents);
-  }
-
-  char last_char = ' ';
-  if (!contents.empty()) {
-    last_char = contents.at(contents.length()-1);
+  
+  // handle self-closed tags with no contents first
+  if (single) {
+    std::string selfclosetag = "<" + tagname + atts + "/>";
+    if (is_inline) return selfclosetag;
+    return indent_space + selfclosetag + "\n";
   } 
 
-  // build results
+  // Handle the general case
   std::string results;
-
-  if (!is_inline) {
-    results.append(indent_space);
+  std::string starttag = "<" + tagname +  atts + ">";
+  std::string closetag = "</" + tagname + ">";
+  if (is_structural) {
+      results = indent_space + starttag;
+      if (!contents.empty()) {
+        results.append("\n" + contents + "\n" + indent_space);
+      }  
+      results.append(closetag + "\n");
+  } else if (is_inline) {
+      results = starttag;
+      results.append(contents);
+      results.append(closetag);
+  } else /** all others */ {
+      results = indent_space + starttag;
+      if (!keep_whitespace) {
+        ltrim(contents);
+      }
+      results.append(contents);
+      results.append(closetag + "\n");
   }
-
-  results.append("<"+tagname+atts+close+">");
-
-  if (pp_okay && is_structural && !contents.empty()) {
-    results.append("\n");
-  }
-
-  results.append(contents);
-
-  if (pp_okay && (last_char != '\n') && !contents.empty() && is_structural) {
-    results.append("\n");
-  }
-
-  // handle any indent before structural close tags
-  if (!is_inline && is_structural && !closeTag.empty() && !contents.empty()) {
-    results.append(indent_space);
-  }
-
-  results.append(closeTag);
-
-  if (pp_okay && !in_set(nonbreaking_inline, parentname) && (parentname != "li")) 
-  {
-    results.append("\n");
-  }
-
   return results;
 }
-
 
 
 int main(int argc, char** argv) {

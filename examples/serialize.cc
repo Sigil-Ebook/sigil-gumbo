@@ -48,7 +48,7 @@ static std::unordered_set<std::string> no_entity_sub       = {
 };
 
 
-static std::unordered_set<std::string> empty_tags          = {
+static std::unordered_set<std::string> void_tags          = {
     "area","base","basefont","bgsound","br","command","col","embed",
     "event-source","frame","hr","image","img","input","keygen","link",
     "menuitem","meta","param","source","spacer","track","wbr"
@@ -56,8 +56,8 @@ static std::unordered_set<std::string> empty_tags          = {
 
 static std::unordered_set<std::string> structural_tags     = {
   "article","aside","blockquote","body","canvas","colgroup","div","dl",
-  "figure","footer","head","header","hr","html","ol","section","script",
-  "style","table","tbody","tfoot","thead","td","th","tr","ul"
+  "figure","footer","head","header","hr","html","ol","section",
+  "table","tbody","tfoot","thead","td","th","tr","ul"
 };
 
 
@@ -117,6 +117,7 @@ static std::string substitute_xml_entities_into_text(const std::string &text)
   replace_all(result, "&", "&amp;");
   replace_all(result, "<", "&lt;");
   replace_all(result, ">", "&gt;");
+  replace_all(result, "\xc2\xa0", "&#160;");
   return result;
 }
 
@@ -247,7 +248,6 @@ static std::string serialize(GumboNode*);
 // may be invoked recursively
 
 static std::string serialize_contents(GumboNode* node) {
-  std::string contents        = "";
   std::string tagname         = get_tag_name(node);
   bool no_entity_substitution = in_set(no_entity_sub, tagname);
   bool keep_whitespace        = in_set(preserve_whitespace, tagname);
@@ -257,6 +257,7 @@ static std::string serialize_contents(GumboNode* node) {
   // build up result for each child, recursively if need be
   GumboVector* children = &node->v.element.children;
 
+  std::string contents        = "";
   bool inject_newline = false;
 
   for (unsigned int i = 0; i < children->length; ++i) {
@@ -318,15 +319,13 @@ static std::string serialize(GumboNode* node) {
     return results;
   }
 
-  std::string close = "";
-  std::string closeTag = "";
-  std::string atts = "";
   std::string tagname            = get_tag_name(node);
   bool need_special_handling     = in_set(special_handling, tagname);
-  bool is_empty_tag              = in_set(empty_tags, tagname);
+  bool is_void_tag               = in_set(void_tags, tagname);
   bool no_entity_substitution    = in_set(no_entity_sub, tagname);
 
   // build attr string  
+  std::string atts = "";
   const GumboVector * attribs = &node->v.element.attributes;
   for (int i=0; i< attribs->length; ++i) {
     GumboAttribute* at = static_cast<GumboAttribute*>(attribs->data[i]);
@@ -334,7 +333,9 @@ static std::string serialize(GumboNode* node) {
   }
 
   // determine closing tag type
-  if (is_empty_tag) {
+  std::string close = "";
+  std::string closeTag = "";
+  if (is_void_tag) {
     close = "/";
   } else {
     closeTag = "</" + tagname + ">";
@@ -352,17 +353,11 @@ static std::string serialize(GumboNode* node) {
 
   // build results
   std::string results;
-
   results.append("<"+tagname+atts+close+">");
-
   if (need_special_handling) results.append("\n");
-
   results.append(contents);
-
   results.append(closeTag);
-
   if (need_special_handling) results.append("\n");
-
   return results;
 }
 
