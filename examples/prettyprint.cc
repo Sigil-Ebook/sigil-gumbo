@@ -32,7 +32,6 @@ static std::unordered_set<std::string> nonbreaking_inline  = {
     "sub","sup","textarea","tt","u","var","wbr"
 };
 
-
 static std::unordered_set<std::string> preserve_whitespace = {
     "pre","textarea","script","style"
 };
@@ -261,10 +260,11 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
   char c                      = indent_chars.at(0);
   int  n                      = indent_chars.length(); 
   char last_char              = 'x';
-
+  bool contains_block_tags    = false;
   GumboVector* children = &node->v.element.children;
 
   if (is_structural) last_char = '\n';
+
 
   for (unsigned int i = 0; i < children->length; ++i) {
 
@@ -291,14 +291,20 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
 
       std::string val = prettyprint(child, lvl, indent_chars);
       std::string childname = get_tag_name(child);
+      if (!in_set(nonbreaking_inline, childname)) {
+        contains_block_tags = true;
+        if (last_char != '\n') {
+          contents.append("\n");
+          last_char='\n';
+        }
+      }
       // if child of a structual element is inline and follows a newline, indent it properly
       if (is_structural && in_set(nonbreaking_inline, childname) && (last_char == '\n')) {
         std::string indent_space = std::string((lvl-1)*n,c);
         contents.append(indent_space);
         ltrim(val);
-      }    
+      }
       contents.append(val);
-
 
     } else if (child->type == GUMBO_NODE_WHITESPACE) {
 
@@ -328,6 +334,13 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
 
   }
 
+  // treat inline tags containing block tags like a block tag
+  if (is_inline && contains_block_tags) {
+    if (last_char != '\n') contents.append("\n");
+    std::string indent_space = std::string((lvl-1)*n,c);
+    contents.append(indent_space);
+  }
+
   return contents;
 }
 
@@ -345,8 +358,13 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
   }
 
   std::string tagname = get_tag_name(node);
+  std::string parentname = get_tag_name(node->parent);
+
   bool is_structural = in_set(structural_tags, tagname);
   bool is_inline = in_set(nonbreaking_inline, tagname);
+
+  //treat inline tags that are children of the body tag as "other" tags (not inline or structural)
+  //if (is_inline  && (parentname == "body")) is_inline = false; 
 
   // build attr string
   std::string atts = "";
@@ -386,7 +404,12 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
   // handle self-closed tags with no contents first
   if (single) {
     std::string selfclosetag = "<" + tagname + atts + "/>";
-    if (is_inline) return selfclosetag;
+    if (is_inline) {
+      // always add newline after br tags when
+      // they are children of structural tags
+      if ((tagname == "br") && in_set(structural_tags, parentname)) selfclosetag.append("\n");
+      return selfclosetag;
+    }
     return indent_space + selfclosetag + "\n";
   } 
 
