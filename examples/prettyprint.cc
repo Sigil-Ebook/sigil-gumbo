@@ -363,9 +363,6 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
   bool is_structural = in_set(structural_tags, tagname);
   bool is_inline = in_set(nonbreaking_inline, tagname);
 
-  //treat inline tags that are children of the body tag as "other" tags (not inline or structural)
-  //if (is_inline  && (parentname == "body")) is_inline = false; 
-
   // build attr string
   std::string atts = "";
   bool no_entity_substitution = in_set(no_entity_sub, tagname);
@@ -374,7 +371,6 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
     GumboAttribute* at = static_cast<GumboAttribute*>(attribs->data[i]);
     atts.append(build_attributes(at, no_entity_substitution));
   }
-
 
   bool is_void_tag = in_set(void_tags, tagname);
 
@@ -394,8 +390,11 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
     rtrim(contents);
   }
 
-  // bool single = is_void_tag || contents.empty();
   bool single = is_void_tag;
+
+  // for xhtml serialization that allows non-void tags to be self-closing 
+  // uncomment the following line: 
+  // single = single || contents.empty();
 
   char c = indent_chars.at(0);
   int  n = indent_chars.length(); 
@@ -405,8 +404,7 @@ static std::string prettyprint(GumboNode* node, int lvl, const std::string inden
   if (single) {
     std::string selfclosetag = "<" + tagname + atts + "/>";
     if (is_inline) {
-      // always add newline after br tags when
-      // they are children of structural tags
+      // always add newline after br tags when they are children of structural tags
       if ((tagname == "br") && in_set(structural_tags, parentname)) selfclosetag.append("\n");
       return selfclosetag;
     }
