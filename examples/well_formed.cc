@@ -59,7 +59,8 @@ int main(int argc, char** argv) {
   }
 
   fprintf(stdout, "%s", contents.c_str());
-
+  fprintf(stdout, "\n--------\n");
+ 
   GumboOptions myoptions = kGumboDefaultOptions;
   myoptions.use_xhtml_rules = true;
   // leave this as false to prevent pre-mature stopping when no error exists
