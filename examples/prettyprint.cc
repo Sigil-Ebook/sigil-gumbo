@@ -263,7 +263,7 @@ static std::string prettyprint_contents(GumboNode* node, int lvl, const std::str
   bool contains_block_tags    = false;
   GumboVector* children = &node->v.element.children;
 
-  if (is_structural) last_char = '\n';
+  if (is_structural || tagname == "#document") last_char = '\n';
 
 
   for (unsigned int i = 0; i < children->length; ++i) {
