@@ -195,8 +195,6 @@ static std::string build_doctype(GumboNode *node)
     }
     results.append(">\n");
   }
-  results.append("<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\"\n");
-  results.append("  \"http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd\">\n\n");
   return results;
 }
 
