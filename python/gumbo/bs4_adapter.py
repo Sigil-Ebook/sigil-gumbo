@@ -68,8 +68,8 @@ def _convert_attrs(element_attrs):
         if attr.namespace != gumboc.AttributeNamespace.NONE:
             name = _fromutf8(attr.name)
             prefix = repr(attr.namespace).lower() if name != 'xmlns' else None
-            nsurl = atr.namespace.to_url()
-            return bs4.element.NamespacedAttributes(prefix, name, nsurl)
+            nsurl = attr.namespace.to_url()
+            return bs4.element.NamespacedAttribute(prefix, name, nsurl)
         else:
             return _fromutf8(attr.name)
     def maybe_value_list(attr):
