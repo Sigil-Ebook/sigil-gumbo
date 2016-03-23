@@ -1,4 +1,4 @@
-// Copyright 2015 Kevin B. Hendricks, Stratford Ontario  All Rights Reserved.
+// Copyright 2015-2016 Kevin B. Hendricks, Stratford Ontario  All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ extern "C" {
   // Note: Use gumbo_destroy_node(GumboNode * node) to properly destroy the node if outside 
   // the final output tree
 
-  GumboNode*  gumbo_create_text_node(GumboNode* node, GumboNodeType type, const char * text);
+  GumboNode*  gumbo_create_text_node(GumboNodeType type, const char * text);
 
   // Creates an element node with the tag (enum) in the specified namespace and returns it.
   // Since no original text exists, any created element tag must already exist in the tag_enum.h
@@ -82,6 +82,43 @@ extern "C" {
   // the output tree.
 
   GumboNode* clone_element_node(const GumboNode* node);
+
+
+  // interface from attribute.h
+  void gumbo_attribute_set_value(GumboAttribute *attr, const char *value);
+  void gumbo_destroy_attribute(GumboAttribute* attribute);
+  void gumbo_element_set_attribute(GumboElement *element, const char *name, const char *value);
+  void gumbo_element_remove_attribute_at(GumboElement *element, unsigned int pos);
+  void gumbo_element_remove_attribute(GumboElement *element, GumboAttribute *attr);
+
+  // interface from vector.h
+  // Initializes a new GumboVector with the specified initial capacity.
+  void gumbo_vector_init(size_t initial_capacity, GumboVector* vector);
+
+  // Frees the memory used by an GumboVector.  Does not free the contained pointers.
+  void gumbo_vector_destroy(GumboVector* vector);
+
+  // Adds a new element to an GumboVector.
+  void gumbo_vector_add(void* element, GumboVector* vector);
+
+  // Removes and returns the element most recently added to the GumboVector.
+  // Ownership is transferred to caller.  Capacity is unchanged.  If the vector is
+  // empty, NULL is returned.
+  void* gumbo_vector_pop(GumboVector* vector);
+
+  // Inserts an element at a specific index.  This is potentially O(N) time, but
+  // is necessary for some of the spec's behavior.
+  void gumbo_vector_insert_at(void* element, int index, GumboVector* vector);
+
+  // Removes an element from the vector, or does nothing if the element is not in the vector.
+  void gumbo_vector_remove(const void* element, GumboVector* vector);
+
+  // Removes and returns an element at a specific index.  Note that this is
+  // potentially O(N) time and should be used sparingly.
+  void* gumbo_vector_remove_at(int index, GumboVector* vector);
+
+  int gumbo_vector_index_of(GumboVector* vector, const void* element);
+  void gumbo_vector_splice(int where, int n_to_remove, void **data, int n_to_insert, GumboVector* vector);
 
 #ifdef __cplusplus
 }
