@@ -51,7 +51,7 @@ static std::unordered_set<std::string> no_entity_sub       = {
 static std::unordered_set<std::string> void_tags          = {
     "area","base","basefont","bgsound","br","command","col","embed",
     "event-source","frame","hr","image","img","input","keygen","link",
-    "menuitem","meta","param","source","spacer","track","wbr"
+    "menuitem","meta","param","path","rect","source","spacer","track","wbr"
 };
 
 static std::unordered_set<std::string> structural_tags     = {
