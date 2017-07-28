@@ -25,7 +25,6 @@
 #include "char_ref.h"
 
 #include <assert.h>
-#include <ctype.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>     // Only for debug assertions at present.
@@ -2493,7 +2492,7 @@ static bool consume_named_ref(
       bool matched = utf8iterator_maybe_consume_match(input, start, len, true);
       assert(matched);
       return true;
-    } else if (is_in_attribute && (*te == '=' || isalnum(*te))) {
+    } else if (is_in_attribute && (*te == '=' || gumbo_isalnum(*te))) {
       output->first = kGumboNoChar;
       output->second = kGumboNoChar;
       utf8iterator_reset(input);

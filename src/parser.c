@@ -15,7 +15,6 @@
 // Author: jdtang@google.com (Jonathan Tang)
 
 #include <assert.h>
-#include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -3168,7 +3167,7 @@ static bool handle_in_table_text(GumboParser* parser, GumboToken* token) {
     // of any one byte that is not whitespace means we flip the flag, so this
     // loop is still valid.
     for (int i = 0; i < buffer->length; ++i) {
-      if (!isspace((unsigned char)buffer->data[i]) || buffer->data[i] == '\v') {
+      if (!gumbo_isspace((unsigned char)buffer->data[i]) || buffer->data[i] == '\v') {
         state->_foster_parent_insertions = true;
         reconstruct_active_formatting_elements(parser);
         break;

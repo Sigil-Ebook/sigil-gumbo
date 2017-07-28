@@ -27,7 +27,7 @@
 #include "util.h"
 #include "vector.h"
 
-static const size_t kMessageBufferSize = 256;
+// static const size_t kMessageBufferSize = 256;
 
 // Prints a formatted message to a StringBuffer.  This automatically resizes the
 // StringBuffer as necessary to fit the message.  Returns the number of bytes
