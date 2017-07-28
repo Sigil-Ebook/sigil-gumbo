@@ -2463,7 +2463,7 @@ valid_named_ref := |*
 *|;
 }%%
 
-%% write data;
+%% write data noerror nofinal;
 
 static bool consume_named_ref(
     struct GumboInternalParser* parser, Utf8Iterator* input, bool is_in_attribute,

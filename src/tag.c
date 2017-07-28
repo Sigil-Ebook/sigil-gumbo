@@ -76,7 +76,7 @@ void gumbo_tag_from_original_text(GumboStringPiece* text) {
  * characters and is locale-independent to remain truthy to the
  * standard
  */
-#define tolower(c) gumbo_tolower(c)
+#define perfhash_tolower(c) gumbo_tolower(c)
 #include "tag_perf.h"
 
 static int
@@ -91,6 +91,7 @@ case_memcmp(const char *s1, const char *s2, int n)
 	return 0;
 }
 
+
 GumboTag gumbo_tagn_enum(const char* tagname, int length) {
   int position = perfhash((const unsigned char *)tagname, length);
   if (position >= 0 &&
@@ -99,6 +100,46 @@ GumboTag gumbo_tagn_enum(const char* tagname, int length) {
     return (GumboTag)position;
   return GUMBO_TAG_UNKNOWN;
 }
+
+
+#if 0
+/**
+ * This version removes unrecognized svg and mathml prefixes from
+ * tags to force the gumbo parser to actually recognize that svg:svg is 
+ * actually an svg tag and similarly for m:math and mml:math and even math:math.
+ * Without it gumbo treats these as unknown tags in the html namespace 
+ * and not to the correct svg or mathml namespaces 
+ **/
+GumboTag gumbo_tagn_enum(const char* tagname, int length) {
+  /* handle replacement of standard prefixes */
+  const char * tagnameptr;
+  int tagnamelength;
+  int position = -1;
+  if (!case_memcmp(tagname, "svg:", 4)) {
+    tagnameptr = tagname + 4;
+    tagnamelength = length - 4;
+  } else if (!case_memcmp(tagname, "m:", 2)) {
+    tagnameptr = tagname + 2;
+    tagnamelength = length - 2;
+  } else if (!case_memcmp(tagname, "mml:", 4)) {
+    tagnameptr = tagname + 4;
+    tagnamelength = length - 4;
+  } else if (!case_memcmp(tagname, "math:", 5)) {
+    tagnameptr = tagname + 5;
+    tagnamelength = length - 5;
+  } else {
+    tagnameptr = tagname;
+    tagnamelength = length;
+  }
+  position = perfhash((const unsigned char *)tagnameptr, tagnamelength);
+  if (position >= 0 &&
+      tagnamelength == kGumboTagSizes[position] &&
+      !case_memcmp(tagnameptr, kGumboTagNames[position], tagnamelength))
+    return (GumboTag)position;
+  return GUMBO_TAG_UNKNOWN;
+}
+#endif
+
 
 GumboTag gumbo_tag_enum(const char* tagname) {
   return gumbo_tagn_enum(tagname, strlen(tagname));
