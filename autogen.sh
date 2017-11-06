@@ -15,7 +15,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 if test -z "$LIBTOOLIZE" -a "`uname`" = "Darwin"; then
-  LIBTOOLIZE=glibtoolize
+  LIBTOOLIZE=libtoolize
 fi
 
 set -ex
