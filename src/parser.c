@@ -54,10 +54,11 @@ static bool handle_in_template(GumboParser*, GumboToken*);
 static void free_node(GumboNode* node);
 
 const GumboOptions kGumboDefaultOptions = {
-  4,
-  true,
-  false,
-  50,
+  4,       /* tab_stop */
+  true,    /* use_xhtml_rules */
+  false,   /* stop_on_first_error */
+  400,     /* max_tree_depth */
+  50,      /* max_errors */
 };
 
 static const GumboStringPiece kDoctypeHtml = GUMBO_STRING("html");
@@ -479,6 +480,7 @@ static void output_init(GumboParser* parser) {
   GumboOutput* output = gumbo_malloc(sizeof(GumboOutput));
   output->root = NULL;
   output->document = new_document_node();
+  output->status = GUMBO_STATUS_OK;
   parser->_output = output;
   gumbo_init_errors(parser);
 }
@@ -4072,6 +4074,10 @@ GumboOutput* gumbo_parse_with_options(
       options, buffer, length, GUMBO_TAG_LAST, GUMBO_NAMESPACE_HTML);
 }
 
+#ifndef unlikely
+    #define unlikely(x)     __builtin_expect((x),0)
+#endif
+
 GumboOutput* gumbo_parse_fragment(
     const GumboOptions* options, const char* buffer, size_t length,
     const GumboTag fragment_ctx, const GumboNamespaceEnum fragment_namespace) {
@@ -4097,6 +4103,7 @@ GumboOutput* gumbo_parse_fragment(
   // of hanging the process before we ever get an error.
   int loop_count = 0;
 
+  const unsigned int max_tree_depth = options->max_tree_depth;
   GumboToken token;
   bool has_error = false;
 
@@ -4193,6 +4200,13 @@ GumboOutput* gumbo_parse_fragment(
       }
     }
 
+    if (unlikely(state->_open_elements.length > max_tree_depth)) {
+      /* this block is unlikely to be taken */
+      parser._output->status = GUMBO_STATUS_TREE_TOO_DEEP;
+      gumbo_debug("Tree depth limit exceeded.\n");
+      break;
+    }
+
     ++loop_count;
     assert(loop_count < 1000000000);
 
@@ -4217,6 +4231,20 @@ GumboOutput* gumbo_parse_fragment(
   gumbo_tokenizer_state_destroy(&parser);
   return parser._output;
 }
+
+const char* gumbo_status_to_string(GumboOutputStatus status) {
+  switch (status) {
+  case GUMBO_STATUS_OK:
+    return "OK";
+  case GUMBO_STATUS_OUT_OF_MEMORY:
+    return "System allocator returned NULL during parsing";
+  case GUMBO_STATUS_TREE_TOO_DEEP:
+    return "Document tree depth limit exceeded";
+  default:
+    return "Unknown GumboOutputStatus value";
+  }
+}
+
 
 void gumbo_destroy_output(GumboOutput* output) {
   free_node(output->document);
