@@ -332,6 +332,9 @@ class Text(ctypes.Structure):
   def __repr__(self):
     return 'Text(%r)' % self.text
 
+class OutputStatus(Enum):
+  _values_ = ['STATUS_OK', 'STATUS_TREE_TOO_DEEP', 'STATUS_OUT_OF_MEMORY']
+
 
 class NodeType(Enum):
   _values_ = ['DOCUMENT', 'ELEMENT', 'TEXT', 'CDATA',
@@ -390,6 +393,7 @@ class Options(ctypes.Structure):
       ('tab_stop', ctypes.c_int),
       ('use_xhtml_rules', ctypes.c_bool),
       ('stop_on_first_error', ctypes.c_bool),
+      ('max_tree_depth', ctypes.c_uint),
       ('max_errors', ctypes.c_int),
       ]
 
@@ -398,6 +402,7 @@ class Output(ctypes.Structure):
   _fields_ = [
       ('document', _Ptr(Node)),
       ('root', _Ptr(Node)),
+      ('status', OutputStatus),
       # TODO(jdtang): Error type.
       ('errors', Vector),
       ]
