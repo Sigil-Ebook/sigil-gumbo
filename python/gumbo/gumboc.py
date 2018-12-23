@@ -333,7 +333,15 @@ class Text(ctypes.Structure):
     return 'Text(%r)' % self.text
 
 class OutputStatus(Enum):
+  STATUS_MSG = [
+      'OK',
+      'Document tree depth limit exceeded',
+      'System allocator returned NULL during parsing',
+   ]
   _values_ = ['STATUS_OK', 'STATUS_TREE_TOO_DEEP', 'STATUS_OUT_OF_MEMORY']
+
+  def to_string(self):
+    return self.STATUS_MSG[self.value]
 
 
 class NodeType(Enum):
