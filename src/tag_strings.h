@@ -46,6 +46,7 @@
 "desc",
 "details",
 "dfn",
+"dialog",
 "dir",
 "div",
 "dl",
