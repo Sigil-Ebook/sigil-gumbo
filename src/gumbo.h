@@ -565,13 +565,13 @@ typedef void (*GumboDeallocatorFunction)(void* userdata, void* ptr);
 typedef struct GumboInternalOptions {
   /**
    * The tab-stop size, for computing positions in source code that uses tabs.
-   * Default: 8.
+   * Default: 4.
    */
   int tab_stop;
 
   /**
    * Whether or not to use xhtml parsing rules on non-void self-closing empty tags
-   * Default: false.
+   * Default: true.
    */
   bool use_xhtml_rules;
 
@@ -595,7 +595,7 @@ typedef struct GumboInternalOptions {
    * is provided so that if the page is totally borked, we don't completely fill
    * up the errors vector and exhaust memory with useless redundant errors.  Set
    * to -1 to disable the limit.
-   * Default: -1
+   * Default: 50
    */
   int max_errors;
 } GumboOptions;

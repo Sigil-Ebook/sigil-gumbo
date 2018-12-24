@@ -46,6 +46,10 @@ src/svg_tags.c: src/svg_tags.gperf
 src/svg_attrs.c: src/svg_attrs.gperf
 	@gperf -m100 $< > src/svg_attrs.c
 
+src/foreign_attrs.c: src/foreign_attrs.gperf
+	@gperf -m100 -n $< > src/foreign_attrs.c
+
+
 lib_LTLIBRARIES = libgumbo.la
 libgumbo_la_CFLAGS = -Wall
 libgumbo_la_LDFLAGS = -version-info 1:0:0 -no-undefined
@@ -56,6 +60,7 @@ libgumbo_la_SOURCES = \
 				src/char_ref.h \
 				src/error.c \
 				src/error.h \
+				src/foreign_attrs.c \
 				src/gumbo_edit.c \
 				src/gumbo_edit.h \
 				src/insertion_mode.h \

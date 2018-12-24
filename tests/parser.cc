@@ -26,7 +26,11 @@ namespace {
 class GumboParserTest : public ::testing::Test {
  protected:
   GumboParserTest() :
-    options_(kGumboDefaultOptions), output_(NULL), root_(NULL) {}
+    options_(kGumboDefaultOptions), output_(NULL), root_(NULL) 
+  {
+    options_.use_xhtml_rules = false;
+    options_.tab_stop = 8;
+  }
 
   virtual ~GumboParserTest() {
     if (output_) {
@@ -38,7 +42,8 @@ class GumboParserTest : public ::testing::Test {
     if (output_) {
       gumbo_destroy_output(output_);
     }
-
+    options_.use_xhtml_rules = false;
+    options_.tab_stop = 8;
     output_ = gumbo_parse_with_options(&options_, input, strlen(input));
     // The naming inconsistency is because these tests were initially written
     // when gumbo_parse returned the document element instead of an GumboOutput
@@ -51,6 +56,8 @@ class GumboParserTest : public ::testing::Test {
     if (output_) {
       gumbo_destroy_output(output_);
     }
+    options_.use_xhtml_rules = false;
+    options_.tab_stop = 8;
 
     output_ = gumbo_parse_fragment(
         &options_, input, strlen(input), context, context_ns);
@@ -63,6 +70,8 @@ class GumboParserTest : public ::testing::Test {
     if (output_) {
       gumbo_destroy_output(output_);
     }
+    options_.use_xhtml_rules = false;
+    options_.tab_stop = 8;
 
     output_ = gumbo_parse_with_options(&options_, input.data(), input.length());
     root_ = output_->document;

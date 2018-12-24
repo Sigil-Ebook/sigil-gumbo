@@ -161,6 +161,8 @@ GumboTest::GumboTest() :
     errors_are_expected_(false),
     text_("")  {
   options_.max_errors = 100;
+  options_.use_xhtml_rules = false;
+  options_.tab_stop = 8;
   parser_._options = &options_;
   parser_._output = static_cast<GumboOutput*>(gumbo_malloc(sizeof(GumboOutput)));
   gumbo_init_errors(&parser_);
