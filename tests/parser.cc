@@ -1094,7 +1094,7 @@ TEST_F(GumboParserTest, ImplicitColgroup) {
 }
 
 TEST_F(GumboParserTest, Form) {
-  Parse("<form><input type=hidden /><isindex /></form>After form");
+  Parse("<form><input type=hidden /></form>After form");
 
   GumboNode* body;
   GetAndAssertBody(root_, &body);
@@ -1209,6 +1209,7 @@ TEST_F(GumboParserTest, MisnestedFormInTable) {
   ASSERT_EQ(0, GetChildCount(form2));
 }
 
+#if 0 // support for IsIndex has now been removed
 TEST_F(GumboParserTest, IsIndex) {
   Parse("<isindex id=form1 action='/action' prompt='Secret Message'>");
   GumboNode* body;
@@ -1285,6 +1286,7 @@ TEST_F(GumboParserTest, IsIndexDuplicateAttribute) {
   EXPECT_STREQ("name", name->name);
   EXPECT_STREQ("isindex", name->value);
 }
+#endif // support for isindex has been removed
 
 TEST_F(GumboParserTest, NestedRawtextTags) {
   Parse("<noscript><noscript jstag=false>"

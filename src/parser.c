@@ -1427,7 +1427,7 @@ static bool is_special_node(const GumboNode* node) {
         TAG(DT), TAG(EMBED), TAG(FIELDSET), TAG(FIGCAPTION), TAG(FIGURE), TAG(FOOTER),
         TAG(FORM), TAG(FRAME), TAG(FRAMESET), TAG(H1), TAG(H2), TAG(H3), TAG(H4),
         TAG(H5), TAG(H6), TAG(HEAD), TAG(HEADER), TAG(HGROUP), TAG(HR), TAG(HTML),
-        TAG(IFRAME), TAG(IMG), TAG(INPUT), TAG(ISINDEX), TAG(LI), TAG(LINK),
+        TAG(IFRAME), TAG(IMG), TAG(INPUT), TAG(LI), TAG(LINK),
         TAG(LISTING), TAG(MARQUEE), TAG(MENU), TAG(META), TAG(NAV), TAG(NOEMBED),
         TAG(NOFRAMES), TAG(NOSCRIPT), TAG(OBJECT), TAG(OL), TAG(P), TAG(PARAM),
         TAG(PLAINTEXT), TAG(PRE), TAG(SCRIPT), TAG(SECTION), TAG(SELECT), TAG(STYLE),
@@ -2670,6 +2670,7 @@ static bool handle_in_body(GumboParser* parser, GumboToken* token) {
                 set_frameset_not_ok(parser);
                 return result;
             }
+#if 0 // remove support for isindex as it has now been removed from the spec
             case GUMBO_TAG_ISINDEX:
                 parser_add_parse_error(parser, token);
                 if (parser->_parser_state->_form_element != NULL &&
@@ -2764,7 +2765,7 @@ static bool handle_in_body(GumboParser* parser, GumboToken* token) {
                     parser->_parser_state->_form_element = NULL;
                 }
                 return false;
-
+#endif  // removed support for isindex
 
             case GUMBO_TAG_TEXTAREA:
 	        // XHTML5

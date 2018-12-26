@@ -391,7 +391,8 @@ typedef enum {
   GUMBO_INSERTION_CONVERTED_FROM_END_TAG = 1 << 4,
 
   /** A flag for nodes that are converted from the parse of an <isindex> tag. */
-  GUMBO_INSERTION_FROM_ISINDEX = 1 << 5,
+  /** no longer used */
+  /* GUMBO_INSERTION_FROM_ISINDEX = 1 << 5, */
 
   /** A flag for <image> tags that are rewritten as <img>. */
   GUMBO_INSERTION_FROM_IMAGE = 1 << 6,
