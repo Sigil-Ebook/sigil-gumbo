@@ -4,7 +4,7 @@
 #pragma once
 
 #include <stddef.h>
-#include <gumbo.h>
+#include "gumbo.h"
 
 #ifdef __cplusplus
 extern "C" {
