@@ -1423,7 +1423,7 @@ static bool is_special_node(const GumboNode* node) {
   return node_tag_in_set(node, (gumbo_tagset)  { TAG(ADDRESS), TAG(APPLET), TAG(AREA),
         TAG(ARTICLE), TAG(ASIDE), TAG(BASE), TAG(BASEFONT), TAG(BGSOUND), TAG(BLOCKQUOTE),
         TAG(BODY), TAG(BR), TAG(BUTTON), TAG(CAPTION), TAG(CENTER), TAG(COL),
-        TAG(COLGROUP), TAG(MENUITEM), TAG(DD), TAG(DETAILS), TAG(DIR), TAG(DIV), TAG(DL),
+        TAG(COLGROUP), TAG(DD), TAG(DETAILS), TAG(DIR), TAG(DIV), TAG(DL),
         TAG(DT), TAG(EMBED), TAG(FIELDSET), TAG(FIGCAPTION), TAG(FIGURE), TAG(FOOTER),
         TAG(FORM), TAG(FRAME), TAG(FRAMESET), TAG(H1), TAG(H2), TAG(H3), TAG(H4),
         TAG(H5), TAG(H6), TAG(HEAD), TAG(HEADER), TAG(HGROUP), TAG(HR), TAG(HTML),
@@ -2069,7 +2069,6 @@ static bool handle_in_head(GumboParser* parser, GumboToken* token) {
         case GUMBO_TAG_BASE:
         case GUMBO_TAG_BASEFONT:
         case GUMBO_TAG_BGSOUND:
-        case GUMBO_TAG_MENUITEM:
         case GUMBO_TAG_LINK:
         case GUMBO_TAG_META:
           insert_element_from_token(parser, token);
@@ -2397,7 +2396,6 @@ static bool handle_in_body(GumboParser* parser, GumboToken* token) {
             case GUMBO_TAG_BASE:
             case GUMBO_TAG_BASEFONT:
             case GUMBO_TAG_BGSOUND:
-            case GUMBO_TAG_MENUITEM:
             case GUMBO_TAG_LINK:
             case GUMBO_TAG_META: 
             case GUMBO_TAG_NOFRAMES:
