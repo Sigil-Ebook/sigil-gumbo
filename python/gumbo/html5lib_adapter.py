@@ -103,7 +103,6 @@ class HTMLParser(object):
     except AttributeError:
       # Assume a string.
       text = text_or_file
-
     with gumboc.parse(text, **kwargs) as output:
       _convert_doctype(self.tree, output.contents.document.contents)
       for node in output.contents.document.contents.children:

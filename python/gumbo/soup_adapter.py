@@ -94,13 +94,13 @@ class _Converter(object):
 
     try:
       result.next_addr = ctypes.addressof(node.next.contents)
-    except ValueError:
+    except (ValueError, AttributeError):
       # Null pointer.
       result.next_addr = 0
 
     try:
       result.prev_addr = ctypes.addressof(node.prev.contents)
-    except ValueError:
+    except (ValueError, AttributeError):
       # Null pointer.
       result.prev_addr = 0
 
