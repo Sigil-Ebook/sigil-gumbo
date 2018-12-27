@@ -17,6 +17,10 @@
 # gtest pieces
 gtest
 gtest-1.7.0
+third_party.tar.gz
+testdata.tar.gz
+.tar.gz
+.zip
 
 # Other build artifacts
 /Debug
