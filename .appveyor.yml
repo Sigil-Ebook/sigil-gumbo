@@ -1,0 +1,60 @@
+image:
+- Visual Studio 2015
+
+branches:
+  only:
+  - master
+  
+clone_folder: c:\project\gumbo
+
+configuration: Release
+
+platform:
+- x64
+
+
+only_commits:
+  files:
+    - CMakeLists.txt
+    - .appveyor.yml
+    - src/
+    - python/gumbo/
+
+
+before_build:
+- cmd: |-
+    cd ..
+    mkdir util
+    cd util
+    # Copy cmake files and windows includes from auxilliary component testing repo
+    git clone https://github.com/sigil-ebook/sigil-component-utilities.git
+    cp C:\project\util\sigil-component-utilities\sigil-gumbo\MainCMakeLists.txt C:\project\gumbo\CMakeLists.txt
+    cp C:\project\util\sigil-component-utilities\sigil-gumbo\CMakeLists.txt C:\project\gumbo\src\CMakeLists.txt
+    mkdir C:\project\gumbo\src\include
+    cp C:\project\util\sigil-component-utilities\sigil-gumbo\include\gumbo_windll.def C:\project\gumbo\src\include\gumbo_windll.def
+    cp C:\project\util\sigil-component-utilities\sigil-gumbo\include\strings.h C:\project\gumbo\src\include\strings.h
+    cd ..
+
+    mkdir build
+    cd build
+    call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %PLATFORM%
+    cmake ..\gumbo -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%configuration%
+
+    
+build_script:
+- cmd: |-
+    call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %PLATFORM%
+    nmake
+ 
+
+test_script:
+- cmd: |-
+    set PATH=C:\Python37-x64;C:\Python37-x64\Scripts;%PATH%
+    python --version
+    pip --version
+    pip install bs4
+    cd ..\gumbo\python\gumbo
+    python gumboc_test.py
+    python bs4_adapter_test.py
+
+
