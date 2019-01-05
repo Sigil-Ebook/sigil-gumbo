@@ -22,11 +22,11 @@ only_commits:
 
 
 before_build:
+# Copy cmake files and windows includes from auxilliary component testing repo
 - cmd: |-
     cd ..
     mkdir util
     cd util
-    # Copy cmake files and windows includes from auxilliary component testing repo
     git clone https://github.com/sigil-ebook/sigil-component-utilities.git
     cp C:\project\util\sigil-component-utilities\sigil-gumbo\MainCMakeLists.txt C:\project\gumbo\CMakeLists.txt
     cp C:\project\util\sigil-component-utilities\sigil-gumbo\CMakeLists.txt C:\project\gumbo\src\CMakeLists.txt
