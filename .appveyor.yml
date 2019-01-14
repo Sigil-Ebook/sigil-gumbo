@@ -41,7 +41,7 @@ test_script:
     python --version
     pip --version
     pip install bs4
-    cd ..\python\gumbo
+    cd python\gumbo
     python gumboc_test.py
     python bs4_adapter_test.py
     python setup.py sdist install
