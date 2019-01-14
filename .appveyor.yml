@@ -22,19 +22,7 @@ only_commits:
 
 
 before_build:
-# Copy cmake files and windows includes from auxilliary component testing repo
 - cmd: |-
-    cd ..
-    mkdir util
-    cd util
-    git clone https://github.com/sigil-ebook/sigil-component-utilities.git
-    cp C:\project\util\sigil-component-utilities\sigil-gumbo\MainCMakeLists.txt C:\project\gumbo\CMakeLists.txt
-    cp C:\project\util\sigil-component-utilities\sigil-gumbo\CMakeLists.txt C:\project\gumbo\src\CMakeLists.txt
-    mkdir C:\project\gumbo\src\include
-    cp C:\project\util\sigil-component-utilities\sigil-gumbo\include\gumbo_windll.def C:\project\gumbo\src\include\gumbo_windll.def
-    cp C:\project\util\sigil-component-utilities\sigil-gumbo\include\strings.h C:\project\gumbo\src\include\strings.h
-    cd ..
-
     mkdir build
     cd build
     call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %PLATFORM%
@@ -56,5 +44,7 @@ test_script:
     cd ..\gumbo\python\gumbo
     python gumboc_test.py
     python bs4_adapter_test.py
+    python setup.py sdist install
+    python -c 'import gumbo; gumbo.parse("Foo")'
 
 

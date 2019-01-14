@@ -1,26 +1,26 @@
-language: c++
-
-compiler:
-  - gcc
-  - clang
-
-os:
-  - linux
-  - osx
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      compiler: gcc
+    - os: osx
+      osx_image: xcode7.3
+      compiler: clang
 
 install:
-  - wget 'https://googletest.googlecode.com/files/gtest-1.7.0.zip'
-  - unzip gtest-1.7.0.zip
-  - ln -s gtest-1.7.0 gtest
-  - sudo pip install BeautifulSoup
-  - sudo pip install html5lib==0.95
+  - sudo pip install bs4
 
 script:
-  - ./autogen.sh && ./configure && make && make check
+  - mkdir build && cd build
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+  	cmake -DCMAKE_OSX_DEPLOYMENT_TARGET=10.9 -DCMAKE_OSX_SYSROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/ -DCMAKE_BUILD_TYPE=Release ../;
+    else
+	cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ../;
+    fi
+  - make -j4
+
+after_success:
   - python python/gumbo/gumboc_test.py
-  - python python/gumbo/html5lib_adapter_test.py
-  - python python/gumbo/soup_adapter_test.py
-  - sudo make install
-  - g++ examples/clean_text.cc `pkg-config --cflags --libs gumbo`
+  - python python/gumbo/bs4_adapter_test.py
   - sudo python setup.py sdist install
   - python -c 'import gumbo; gumbo.parse("Foo")'
