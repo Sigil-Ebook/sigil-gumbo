@@ -26,7 +26,7 @@ before_build:
     mkdir build
     cd build
     call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %PLATFORM%
-    cmake ..\gumbo -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%configuration%
+    cmake ..\ -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%configuration%
 
     
 build_script:
