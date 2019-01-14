@@ -44,6 +44,7 @@ test_script:
     cd python\gumbo
     python gumboc_test.py
     python bs4_adapter_test.py
+    cd ..\..\
     python setup.py sdist install
     python -c 'import gumbo; gumbo.parse("Foo")'
 
