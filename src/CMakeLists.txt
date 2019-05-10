@@ -29,17 +29,17 @@ if( APPLE )
      set(CMAKE_MACOSX_RPATH 1)
 endif()
 
-if ( MSVC AND NOT STATIC_LIB )
+if ( MSVC AND NOT GUMBO_STATIC_LIB )
      set(SOURCES ${SOURCES} ${CMAKE_SOURCE_DIR}/visualc/include/gumbo_windll.def)
 endif()
 
-if ( NOT STATIC_LIB  )
+if ( NOT GUMBO_STATIC_LIB  )
     add_library(${PROJECT_NAME} SHARED ${SOURCES})
 else()
     add_library(${PROJECT_NAME} STATIC ${SOURCES})
 endif()
 
-if ( NOT IS_SUBTREE )
+if ( NOT GUMBO_IS_SUBTREE )
     # Copy python scripts to build directory
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy_directory
 				${CMAKE_SOURCE_DIR}/python ${TOP_BUILD_LEVEL}/python)
@@ -48,7 +48,7 @@ if ( NOT IS_SUBTREE )
 				${CMAKE_SOURCE_DIR}/setup.py ${TOP_BUILD_LEVEL})
 endif()
 
-if ( MSVC AND NOT STATIC_LIB )
+if ( MSVC AND NOT GUMBO_STATIC_LIB )
     # Copy Windows .dll from bin to .libs so existing python tests can run.
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy 
      		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
@@ -56,7 +56,7 @@ endif()
 
 # Special compiler and linker flags for MSVC
 if(MSVC)
-    if ( IS_SUBTREE )
+    if ( GUMBO_STATIC_LIB )
         add_definitions(-Dstrcasecmp=_stricmp)
         add_definitions(-Dstrncasecmp=_strnicmp)
         add_definitions(-Dinline=__inline)
