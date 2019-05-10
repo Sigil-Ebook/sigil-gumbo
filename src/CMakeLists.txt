@@ -56,18 +56,20 @@ endif()
 
 # Special compiler and linker flags for MSVC
 if(MSVC)
-    if ( GUMBO_STATIC_LIB )
-        add_definitions(-Dstrcasecmp=_stricmp)
-        add_definitions(-Dstrncasecmp=_strnicmp)
-        add_definitions(-Dinline=__inline)
-    else()
-        set (EXTRA_INC ${CMAKE_SOURCE_DIR}/visualc/include/)
-        include_directories(SYSTEM ${EXTRA_INC})
-    endif()
+    FILE(WRITE ${CMAKE_BINARY_DIR}/inc/strings.h
+      "/*Dummy file to satisfy source file dependencies on Windows platform*/\n"
+    )
+    set (EXTRA_INC ${CMAKE_BINARY_DIR}/inc/)
+    include_directories(SYSTEM ${EXTRA_INC})
+
+    add_definitions(-Dstrcasecmp=_stricmp)
+    add_definitions(-Dstrncasecmp=_strnicmp)
+    add_definitions(-Dinline=__inline)
 
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /Oi /GL")
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS} /LTCG")
+    set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "${CMAKE_STATIC_LINKER_FLAGS} /LTCG")
 endif()
 
 if( UNIX AND NOT APPLE )
