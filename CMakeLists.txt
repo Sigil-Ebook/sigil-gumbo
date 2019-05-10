@@ -17,6 +17,14 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/.libs)
 
 set(TOP_BUILD_LEVEL ${PROJECT_BINARY_DIR})
 
+if(NOT DEFINED STATIC_LIB)
+  set(STATIC_LIB 0)
+endif()
+
+if(NOT DEFINED IS_SUBTREE)
+  set(IS_SUBTREE 0)
+endif()
+
 add_subdirectory(src/)
 add_subdirectory(examples/)
 
