@@ -29,33 +29,49 @@ if( APPLE )
      set(CMAKE_MACOSX_RPATH 1)
 endif()
 
-if ( MSVC )
+if ( MSVC AND NOT GUMBO_STATIC_LIB )
      set(SOURCES ${SOURCES} ${CMAKE_SOURCE_DIR}/visualc/include/gumbo_windll.def)
 endif()
 
-add_library(${PROJECT_NAME} SHARED ${SOURCES})
+if ( NOT GUMBO_STATIC_LIB  )
+    add_library(${PROJECT_NAME} SHARED ${SOURCES})
+else()
+    add_library(${PROJECT_NAME} STATIC ${SOURCES})
+endif()
 
-# Copy python scripts to build directory
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy_directory
+if ( NOT GUMBO_IS_SUBTREE )
+    # Copy python scripts to build directory
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy_directory
 				${CMAKE_SOURCE_DIR}/python ${TOP_BUILD_LEVEL}/python)
-# Copy python module setup.py to build directory
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy 
+    # Copy python module setup.py to build directory
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy 
 				${CMAKE_SOURCE_DIR}/setup.py ${TOP_BUILD_LEVEL})
-if ( MSVC )
-     # Copy Windows .dll from bin to .libs so existing python tests can run.
-     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy 
+endif()
+
+if ( MSVC AND NOT GUMBO_STATIC_LIB )
+    # Copy Windows .dll from bin to .libs so existing python tests can run.
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy 
      		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${PROJECT_NAME}.dll ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 endif()
 
 # Special compiler and linker flags for MSVC
 if(MSVC)
-    set (EXTRA_INC ${CMAKE_SOURCE_DIR}/visualc/include/)
+    if(NOT EXISTS ${CMAKE_BINARY_DIR}/inc/strings.h)
+        FILE(WRITE ${CMAKE_BINARY_DIR}/inc/strings.h
+          "/*Dummy file to satisfy source file dependencies on Windows platform*/\n"
+        )
+    endif()
+    set (EXTRA_INC ${CMAKE_BINARY_DIR}/inc/)
     include_directories(SYSTEM ${EXTRA_INC})
-    #add_definitions(-Dinline=__inline)
+
+    add_definitions(-Dstrcasecmp=_stricmp)
+    add_definitions(-Dstrncasecmp=_strnicmp)
+    add_definitions(-Dinline=__inline)
 
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /Oi /GL")
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS} /LTCG")
+    set(CMAKE_STATIC_LINKER_FLAGS_RELEASE "${CMAKE_STATIC_LINKER_FLAGS} /LTCG")
 endif()
 
 if( UNIX AND NOT APPLE )
