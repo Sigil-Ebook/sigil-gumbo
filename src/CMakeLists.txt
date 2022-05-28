@@ -30,7 +30,7 @@ if( APPLE )
 endif()
 
 if ( MSVC AND NOT GUMBO_STATIC_LIB )
-     set(SOURCES ${SOURCES} ${CMAKE_SOURCE_DIR}/visualc/include/gumbo_windll.def)
+     set(SOURCES ${SOURCES} ${CMAKE_CURRENT_SOURCE_DIR}/visualc/include/gumbo_windll.def)
 endif()
 
 if ( NOT GUMBO_STATIC_LIB  )
@@ -41,11 +41,12 @@ endif()
 
 if ( NOT GUMBO_IS_SUBTREE )
     # Copy python scripts to build directory
+    get_filename_component(PARENT_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy_directory
-				${CMAKE_SOURCE_DIR}/python ${TOP_BUILD_LEVEL}/python)
+				${PARENT_DIR}/python ${TOP_BUILD_LEVEL}/python)
     # Copy python module setup.py to build directory
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy 
-				${CMAKE_SOURCE_DIR}/setup.py ${TOP_BUILD_LEVEL})
+				${PARENT_DIR}/setup.py ${TOP_BUILD_LEVEL})
 endif()
 
 if ( MSVC AND NOT GUMBO_STATIC_LIB )
