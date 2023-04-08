@@ -2169,6 +2169,7 @@ static bool handle_in_head_noscript(GumboParser* parser, GumboToken* token) {
   switch (token->type) {
     case GUMBO_TOKEN_DOCTYPE:
       parser_add_parse_error(parser, token);
+      ignore_token(parser);
       return false;
     case GUMBO_TOKEN_WHITESPACE:
     case GUMBO_TOKEN_COMMENT:
