@@ -3177,16 +3177,19 @@ static bool handle_in_table(GumboParser* parser, GumboToken* token) {
   switch (token->type) {
     case GUMBO_TOKEN_CHARACTER:
     case GUMBO_TOKEN_WHITESPACE:
-      // The "pending table character tokens" list described in the spec is
-      // nothing more than the TextNodeBufferState.  We accumulate text tokens
-      // as normal, except that when we go to flush them in the handle_in_table_text,
-      // we set _foster_parent_insertions if there're non-whitespace characters
-      // in the buffer.
-      assert(state->_text_node._buffer.length == 0);
-      state->_original_insertion_mode = state->_insertion_mode;
-      state->_reprocess_current_token = true;
-      set_insertion_mode(parser, GUMBO_INSERTION_MODE_IN_TABLE_TEXT);
-      return true;
+    case GUMBO_TOKEN_NULL:
+        if (node_tag_in_set(get_current_node(parser), (const gumbo_tagset) { TAG(TABLE), TAG(TBODY), TAG(TEMPLATE), TAG(TFOOT), TAG(THEAD), TAG(TR) })) {
+          // The "pending table character tokens" list described in the spec is
+          // nothing more than the TextNodeBufferState.  We accumulate text tokens
+          // as normal, except that when we go to flush them in the handle_in_table_text,
+          // we set _foster_parent_insertions if there're non-whitespace characters
+          // in the buffer.
+          assert(state->_text_node._buffer.length == 0);
+          state->_original_insertion_mode = state->_insertion_mode;
+          state->_reprocess_current_token = true;
+          set_insertion_mode(parser, GUMBO_INSERTION_MODE_IN_TABLE_TEXT);
+          return true;
+        }
     case GUMBO_TOKEN_DOCTYPE:
       parser_add_parse_error(parser, token);
       ignore_token(parser);
