@@ -47,8 +47,8 @@ if ( NOT GUMBO_IS_SUBTREE )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy_directory
 				${CMAKE_SOURCE_DIR}/testdata ${TOP_BUILD_LEVEL}/testdata)
     # Copy python module setup.py to build directory
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy 
-			${CMAKE_SOURCE_DIR}/setup.py ${TOP_BUILD_LEVEL})
+    # add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND cmake -E copy 
+	# 		${CMAKE_SOURCE_DIR}/setup.py ${TOP_BUILD_LEVEL})
 endif()
 
 if ( MSVC AND NOT GUMBO_STATIC_LIB )
