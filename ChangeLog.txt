@@ -25,4 +25,5 @@ In reverse chronological order:
 - Add support for <dialog> tag
 - Add missing static qualifiers to hide symbols that shouldn't be extern
 - Replace use of locale-dependant ctype.h functions with custom, ASCII-only equiv
+- add ability and interface to modify/edit the dom tree after parsing completes
 - allow support for xhtml parsing rules controllable via GumboOptions use_xhtml_rules flag
