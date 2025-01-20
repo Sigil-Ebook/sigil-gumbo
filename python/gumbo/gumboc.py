@@ -20,6 +20,7 @@ from __future__ import unicode_literals, print_function
 #
 
 import sys
+import inspect
 
 PY3 = sys.version_info[0] >= 3
 
@@ -75,26 +76,30 @@ _Ptr = ctypes.POINTER
 
 class EnumMetaclass(type(ctypes.c_uint)):
   def __new__(metaclass, name, bases, cls_dict):
-    cls = type(ctypes.c_uint).__new__(metaclass, name, bases, cls_dict)
-    if name == 'Enum':
-      return cls
-    try:
-      for i, value in enumerate(cls_dict['_values_']):
-        setattr(cls, value, cls.from_param(i))
-    except KeyError:
-      raise ValueError('No _values_ list found inside enum type.')
-    except TypeError:
-      raise ValueError('_values_ must be a list of names of enum constants.')
-    return cls
+    return super().__new__(metaclass, name, bases, cls_dict)
+
+  def __init__(self, name, bases, cls_dict):
+    super().__init__(name, bases, cls_dict)
+    if name != 'Enum':
+      try:
+        for i, value in enumerate(cls_dict['_values_']):
+          setattr(self, value, self.from_param(i))
+      except KeyError:
+        raise ValueError('No _values_ list found inside enum type.')
+      except TypeError:
+        raise ValueError('_values_ must be a list of names of enum constants.')
 
 def with_metaclass(mcls):
-    def decorator(cls):
-        body = vars(cls).copy()
-        # clean out class body
-        body.pop('__dict__', None)
-        body.pop('__weakref__', None)
-        return mcls(cls.__name__, cls.__bases__, body)
-    return decorator
+  def decorator(cls):
+    body = vars(cls).copy()
+    # clean out class body
+    body.pop('__dict__', None)
+    body.pop('__weakref__', None)
+    # print("in decorator: ", cls.__name__)
+    # print("in decorator: ", cls.__bases__)
+    # print("in decorator: ", body)
+    return mcls(cls.__name__, cls.__bases__, body)
+  return decorator
 
 @with_metaclass(EnumMetaclass)
 class Enum(ctypes.c_uint):
@@ -285,6 +290,7 @@ class Tag(Enum):
     return _tag_enum(text_ptr)
 
   _values_ = gumboc_tags.TagNames + ['UNKNOWN', 'LAST']
+      
 
 class Element(ctypes.Structure):
   _fields_ = [
